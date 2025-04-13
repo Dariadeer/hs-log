@@ -8,23 +8,25 @@ const utils = require('./utils');
 
 const DB_SETUP_PATH = path.resolve(__dirname, '../resources/db_setup.sql');
 
-const connection = mysql.createConnection({
+const pool = mysql.createPool({
     host: DB_HOST,
     user: DB_USER,
     password: DB_PASSWORD,
-    port: DB_PORT
+    port: DB_PORT,
+    keepAliveInitialDelay: 10000,
+    enableKeepAlive: true,
 });
 
 // we do this to use async await with mysql (see: https://stackoverflow.com/questions/50093144/using-async-await-with-a-mysql-database)
-connection.query = util.promisify(connection.query).bind(connection);
+pool.query = util.promisify(pool.query).bind(pool);
 
-module.exports = connection;
+module.exports = pool;
 
 async function setup() {
     const queries = fs.readFileSync(DB_SETUP_PATH).toString().split(';');
     for(let query of queries) {
         try {
-            await connection.query(query);
+            await pool.query(query);
         } catch(error) {
             if(error.code !== 'ER_EMPTY_QUERY') {
                 throw error;
@@ -38,7 +40,7 @@ async function log(data, callback) {
         switch (data.EventType) {
             case 'RedStarStarted':
                 // Insert the star
-                await connection.query(
+                await pool.query(
                     'INSERT INTO stars (ssid, rs_level, drs, rs_start) VALUES (?, ?, ?, ?)',
                     [data.StarSystemID, data.StarLevel, data.DarkRedStar, formatDate(data.Timestamp)]
                 );
@@ -46,18 +48,18 @@ async function log(data, callback) {
                     status: 1
                 });
             case 'RedStarEnded':
-                await connection.query(
+                await pool.query(
                     'UPDATE stars SET rs_end = ?, rs_points = ?, players = ? WHERE ssid = ?',
                     [formatDate(data.Timestamp), data.RSEventPoints, data.PlayersWhoContributed.length, data.StarSystemID]
                 );
                 // Insert players
-                await connection.query(
+                await pool.query(
                     'INSERT IGNORE INTO players (pid, name) VALUES ?',
                     [data.PlayersWhoContributed.map(player => [player.PlayerID, player.PlayerName])]
                 );
 
                 // Insert participation
-                await connection.query(
+                await pool.query(
                     'INSERT INTO participation (pid, ssid) VALUES ?',
                     [data.PlayersWhoContributed.map(player => [player.PlayerID, data.StarSystemID])]
                 );
@@ -85,12 +87,12 @@ function formatDate(dateString) {
 
 async function report(season) {
 
-    await connection.query('use hs_log');
+    await pool.query('use hs_log');
     const [start, end] = utils.getEventTimeframe(season);
     const formattedStart = new Date(start).toISOString();
     const formattedEnd = new Date(end).toISOString();
 
-    const results = await connection.query(`
+    const results = await pool.query(`
         SELECT 
           p.pid,
           p.name,
@@ -115,18 +117,19 @@ async function report(season) {
 }
 
 function connect(callback) {
-    connection.connect(async err => {
+    pool.getConnection(async (err, connection) => {
         if (err) throw err;
         console.log("Connected to the DB successfully!");
         await setup();
         console.log("DB setup completed!");
         callback();
+        connection.release();
     });
 }
 
 module.exports = {
     log,
     report,
-    query: connection.query,
+    query: pool.query,
     connect
 };

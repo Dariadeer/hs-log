@@ -46,11 +46,13 @@ async function processWebhookMessage(message) {
 
 client.on('interactionCreate', async interaction => {
     if(interaction.commandName === 'report') {
+        await interaction.reply('Generating report...');
         const season = interaction.options.get('season') ? interaction.options.get('season').value : utils.getLastEventNumber(Date.now());
         const files = await generateReport(season);
-        if(!files) return await interaction.reply('The data for this season was not recorded');
-        await interaction.reply(
+        if(!files) return await interaction.editReply('The data for this season was not recorded');
+        await interaction.editReply(
         {
+            content: '',
             files:files
         });
     }
