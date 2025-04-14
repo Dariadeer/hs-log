@@ -4,6 +4,8 @@ const util = require('util');
 const path = require('path');
 const fs = require('fs');
 
+const stats = require('./reports').stats;
+
 const utils = require('./utils');
 
 const DB_SETUP_PATH = path.resolve(__dirname, '../resources/queries/db_setup.sql');
@@ -85,7 +87,7 @@ function formatDate(dateString) {
     return dateString.slice(0, 19).replace('T', ' ');
 }
 
-async function report(season) {
+async function report(season, stat) {
 
     await pool.query('use hs_log');
     const [start, end] = utils.getEventTimeframe(season);
@@ -96,10 +98,7 @@ async function report(season) {
         SELECT 
           p.pid,
           p.name,
-          CAST(SUM(s.rs_points / NULLIF(s.players, 0)) AS UNSIGNED) AS total_adjusted_score,
-          COUNT(DISTINCT s.ssid) AS runs_participated,
-          CAST(SUM(s.rs_points) AS UNSIGNED) AS raw_total_score,
-          SUM(CAST(TIME_TO_SEC(TIMEDIFF(s.rs_end, s.rs_start)) AS UNSIGNED)) AS total_time_spent
+          ${stats[stat].query} AS \`${stats[stat].name}\`
         FROM 
           players p
         JOIN 
@@ -111,7 +110,7 @@ async function report(season) {
         GROUP BY 
           p.pid, p.name
         ORDER BY 
-          total_adjusted_score DESC
+          \`${stats[stat].name}\` DESC
   `, [formattedStart, formattedEnd]);
     return results;
 }

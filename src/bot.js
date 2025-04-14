@@ -4,6 +4,8 @@ const utils = require('./utils.js');
 const images = require('./images.js');
 const { GUILD, LB_CHANNEL } = process.env;
 
+const stats = require('./reports').stats;
+
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
 client.on('messageCreate', async message => {
@@ -48,7 +50,8 @@ client.on('interactionCreate', async interaction => {
     if(interaction.commandName === 'report') {
         await interaction.reply('Generating report...');
         const season = interaction.options.get('season') ? interaction.options.get('season').value : utils.getLastEventNumber(Date.now());
-        const files = await generateReport(season);
+        const stat = interaction.options.get('stat') ? interaction.options.get('stat').value : 0;
+        const files = await generateReport(season, stat);
         if(!files) return await interaction.editReply('The data for this season was not recorded');
         await interaction.editReply(
         {
@@ -58,14 +61,15 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-async function generateReport(season) {
-    const players = await db.report(season);
+async function generateReport(season, stat) {
+    stat = stat || 0;
+    const players = await db.report(season, stat);
     if(players.length === 0) return null;
     const files = [];
     for(let i = 0; i < players.length; i+= 10) {
         files.push({
             name: 'report (' + i + ').png',
-            attachment: await images.generateScoreboardImage(players, season, i, 10, players[0].total_adjusted_score)
+            attachment: await images.generateScoreboardImage(players, season, i, 10, players[0][stats[stat].name], stat)
         })
     }
     return files;

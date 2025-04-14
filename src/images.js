@@ -2,6 +2,8 @@ const { createCanvas, Image } = require('canvas');
 const fs = require('fs');
 const path = require('path');
 
+const stats = require('./reports').stats;
+
 const rsIcon = new Image();
 rsIcon.src = fs.readFileSync(path.resolve(__dirname, '../resources/images/red-star.png'));
 
@@ -13,7 +15,7 @@ const bgGradient = '#0a0e24'; //ctx.createLinearGradient(0, 0, canvasWidth, canv
 const tiers = ['S', 'A', 'B', 'C', 'D', 'E'];
 const colors = ['#FF0000', '#FFA600', '#FFFF00', '#00FFE1', '#9000FF', '#FF00F7']
 
-async function generateCosmicScoreboard(players, eventNumber, offset, limit, maxScore) {
+async function generateCosmicScoreboard(players, eventNumber, offset, limit, maxValue, stat) {
     // Canvas setup with wider format for better layout
 
     const canvasWidth = 900;
@@ -75,16 +77,31 @@ async function generateCosmicScoreboard(players, eventNumber, offset, limit, max
         ctx.font = '22px "Arial", sans-serif';
         ctx.fillText(player.name, 80, y + 40);
 
-
-
         // Score (right-aligned)
-        ctx.textAlign = 'center';
+        ctx.textAlign = 'right';
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 22px "Arial", sans-serif';
-        const playerScore = player.total_adjusted_score.toLocaleString();
-        const w = ctx.measureText(playerScore).width;
-        ctx.fillText(playerScore, canvasWidth - 70, y + 40);
-        ctx.drawImage(rsIcon, canvasWidth - 70 - 22 - w / 2, y + 21.5, 22, 22);
+        let value = player[stats[stat].name];
+        switch(stats[stat].type) {
+            case 0:
+                let playerScore = (((10 * value) | 0) / 10).toLocaleString();
+                if(stat === 3) playerScore += ' min⁻¹'
+                let w = ctx.measureText(playerScore).width;
+                ctx.fillText(playerScore, canvasWidth - 20, y + 40);
+                ctx.drawImage(rsIcon, canvasWidth - 30 - w - 22, y + 21.5, 22, 22);
+                break;
+            case 2:
+                let num = value.toLocaleString();
+                ctx.fillText('x' + num, canvasWidth - 30, y + 40);
+                break;
+            case 1:
+                value = value | 0;
+                let seconds = value % 60;
+                let minutes = (value - seconds) / 60 % 60;
+                let hours = (value - minutes * 60 - seconds) / 3600;
+                ctx.fillText((hours ? (hours + 'h ') : '') + (minutes ? (minutes + 'm ') : '') + (seconds ? (seconds + 's') : ''), canvasWidth - 30, y + 40);
+                break;
+        }
 
         // 🕒
         // const playerTime = new Date((player.total_time_spent - 3600) * 1000);
@@ -92,7 +109,7 @@ async function generateCosmicScoreboard(players, eventNumber, offset, limit, max
         // ctx.fillText(timeString, canvasWidth - 200, y + 40);
 
         // Score bar (dynamic width based on score)
-        const scoreWidth = (player.total_adjusted_score / maxScore) * (canvasWidth - 110);
+        const scoreWidth = (player[stats[stat].name] / maxValue) * (canvasWidth - 110);
 
         ctx.strokeStyle = '#0000';
         ctx.fillStyle = 'rgba(91, 105, 242, 0.3)';
@@ -104,7 +121,7 @@ async function generateCosmicScoreboard(players, eventNumber, offset, limit, max
         // const barGradient = ctx.createLinearGradient(0, 0, scoreWidth, 0);
         // barGradient.addColorStop(0, '#f25b5b');
         // barGradient.addColorStop(1, '#f25959');
-        ctx.fillStyle = '#f25b5b';
+        ctx.fillStyle = stats[stat].color;
         ctx.beginPath();
         ctx.roundRect(80, y + 50, scoreWidth, 8, 5);
         ctx.fill();
@@ -139,7 +156,7 @@ function drawStarfield(ctx, width, height) {
     ctx.globalAlpha = 1;
 }
 
-function getTier(score, maxScore) {
+function getTier(score, maxValue) {
     return score
 }
 
