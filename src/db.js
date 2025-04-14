@@ -6,7 +6,7 @@ const fs = require('fs');
 
 const utils = require('./utils');
 
-const DB_SETUP_PATH = path.resolve(__dirname, '../resources/db_setup.sql');
+const DB_SETUP_PATH = path.resolve(__dirname, '../resources/queries/db_setup.sql');
 
 const pool = mysql.createPool({
     host: DB_HOST,

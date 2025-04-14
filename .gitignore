@@ -1,7 +1,5 @@
 node_modules
 package-lock.json
 .env
-src/test/*
-test.js
-test2.js
+test/*
 .idea
