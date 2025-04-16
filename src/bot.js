@@ -20,7 +20,7 @@ async function processWebhookMessage(message) {
         await client.log(data, async res => {
             if(res.status === 0) {
                 message.react('❗');
-                console.log(res.err);
+                console.log(res.error);
                 return;
             }
             message.react('✅');
