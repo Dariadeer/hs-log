@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, DiscordAPIError } = require('discord.js');
+const { Client, GatewayIntentBits, DiscordAPIError, EmbedBuilder, EmbedType, AttachmentBuilder} = require('discord.js');
 const db = require('./db.js');
 const utils = require('./utils.js');
 const images = require('./images.js');
@@ -47,54 +47,83 @@ async function processWebhookMessage(message) {
     }
 }
 
-client.on('interactionCreate', async interaction => {
+const { createCanvas } = require('canvas');
 
-    switch (interaction.commandName) {
-        case 'lb':
-        case 'leaderboard':
-            await interaction.deferReply();
-            const season = interaction.options.get('season') ? interaction.options.get('season').value : utils.getLastEventNumber(Date.now());
-            const stat = interaction.options.get('stat') ? interaction.options.get('stat').value : 0;
-            const files = await generateReport(season, stat);
-            if(!files) return await interaction.editReply({
-                content: 'The data for this season was not recorded',
-                ephemeral: true
-            });
-            await interaction.editReply(
-                {
-                    content: '',
-                    files:files,
-                    ephimeral: true
-                });
-            break;
-        case 'feed':
-            await interaction.deferReply();
-            try {
-                const data = interaction.options.get('data').value;
-                const json = JSON.parse(data);
-                await client.log(json, async res => {
-                    if(res && res.status === 0) {
-                        await interaction.editReply('Error: ' + res.error);
-                        return;
-                    }
-                    await interaction.editReply({
-                        content: 'Data fed successfully',
-                        ephemeral: true
-                    });
-                });
-            } catch (err) {
-                await interaction.editReply({
-                    content: 'Error: ' + err.message,
+function generateBlackSquare(size = 100) {
+  const canvas = createCanvas(size, size);
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = 'black';
+  ctx.fillRect(0, 0, size, size);
+
+  return canvas.toBuffer('image/png');
+}
+
+client.on('interactionCreate', async interaction => {
+    try {
+        switch (interaction.commandName) {
+            case 'lb':
+            case 'leaderboard':
+                await interaction.deferReply({ephemeral: true});
+                const season = interaction.options.get('season') ? interaction.options.get('season').value : utils.getLastEventNumber(Date.now());
+                const stat = interaction.options.get('stat') ? interaction.options.get('stat').value : 0;
+                const files = await generateReport(season, stat);
+                if(!files) return await interaction.editReply({
+                    content: 'The data for this season was not recorded',
                     ephemeral: true
                 });
-            }
-            break;
-        case 'test':
-            await interaction.reply('Test command executed');
-            break;
-        case 'help':
-            await interaction.reply('Help command executed');
-            break;
+                
+                const attachments = files.map(file => {
+                    return new AttachmentBuilder(file.attachment, {
+                      name: file.name,
+                    });
+                  });
+                  
+                  const embeds = files.map(file => ({
+                    color: 0x420000,
+                    image: {
+                      url: 'attachment://' + file.name
+                    }
+                  }));
+                  
+                  await interaction.editReply({
+                    content: '',
+                    embeds,
+                    files: attachments,
+                    ephemeral: true
+                  });
+                break;
+            case 'feed':
+                await interaction.deferReply();
+                try {
+                    const data = interaction.options.get('data').value;
+                    const json = JSON.parse(data);
+                    await client.log(json, async res => {
+                        if(res && res.status === 0) {
+                            await interaction.editReply('Error: ' + res.error);
+                            return;
+                        }
+                        await interaction.editReply({
+                            content: 'Data fed successfully',
+                            ephemeral: true
+                        });
+                    });
+                } catch (err) {
+                    await interaction.editReply({
+                        content: 'Error: ' + err.message,
+                        ephemeral: true
+                    });
+                }
+                break;
+            case 'test':
+                await interaction.reply('Test command executed');
+                break;
+            case 'help':
+                await interaction.reply('Help command executed');
+                break;
+        }
+    } catch (err) {
+        console.error(err);
     }
 });
 
@@ -105,11 +134,74 @@ async function generateReport(season, stat) {
     const files = [];
     for(let i = 0; i < players.length; i+= 10) {
         files.push({
-            name: 'report (' + i + ').png',
+            name: 'report' + i + '.png',
             attachment: await images.generateScoreboardImage(players, season, i, 10, players[0][stats[stat].name], stat)
         })
     }
     return files;
 }
+
+// async function processInteraction(interaction) {
+//     switch (interaction.commandName) {
+//         case 'lb':
+//         case 'leaderboard':
+//             await interaction.deferReply({ephemeral: true});
+//             const season = interaction.options.get('season') ? interaction.options.get('season').value : utils.getLastEventNumber(Date.now());
+//             const stat = interaction.options.get('stat') ? interaction.options.get('stat').value : 0;
+//             const files = await generateReport(season, stat);
+//             if(!files) return await interaction.editReply({
+//                 content: 'The data for this season was not recorded',
+//                 ephemeral: true
+//             });
+            
+//             for (const file of files) {
+//                 const embed = new EmbedBuilder()
+//                 .setColor(0x0099FF)
+//                 .setTitle('Leaderboard')
+//                 .setDescription('Season ' + season)
+//                 .setImage('attachment://' + file.name)
+//                 .setTimestamp()
+//                 .setFooter({ text: 'StarSystem' });
+            
+//                 const attachment = new AttachmentBuilder(file.attachment, { name: file.name });
+            
+//                 await interaction.followUp({
+//                 embeds: [embed],
+//                 files: [attachment],
+//                 ephemeral: true
+//                 });
+//                 break;
+//             }
+//             break;
+//         case 'feed':
+//             await interaction.deferReply({ephemeral:true});
+//             try {
+//                 const data = interaction.options.get('data').value;
+//                 const json = JSON.parse(data);
+//                 await client.log(json, async res => {
+//                     if(res && res.status === 0) {
+//                         await interaction.editReply('Error: ' + res.error);
+//                         return;
+//                     }
+//                     await interaction.editReply({
+//                         content: 'Data fed successfully',
+//                         ephemeral: true
+//                     });
+//                 });
+//             } catch (err) {
+//                 await interaction.editReply({
+//                     content: 'Error: ' + err.message,
+//                     ephemeral: true
+//                 });
+//             }
+//             break;
+//         case 'test':
+//             await interaction.reply('Test command executed');
+//             break;
+//         case 'help':
+//             await interaction.reply('Help command executed');
+//             break;
+//     }
+// }
 
 module.exports = client;
