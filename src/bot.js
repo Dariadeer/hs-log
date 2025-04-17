@@ -2,6 +2,7 @@ const { Client, GatewayIntentBits, DiscordAPIError } = require('discord.js');
 const db = require('./db.js');
 const utils = require('./utils.js');
 const images = require('./images.js');
+const e = require('cors');
 const { GUILD, LB_CHANNEL } = process.env;
 
 const stats = require('./reports').stats;
@@ -51,19 +52,23 @@ client.on('interactionCreate', async interaction => {
     switch (interaction.commandName) {
         case 'lb':
         case 'leaderboard':
-            await interaction.reply("Generating report...");
+            await interaction.deferReply();
             const season = interaction.options.get('season') ? interaction.options.get('season').value : utils.getLastEventNumber(Date.now());
             const stat = interaction.options.get('stat') ? interaction.options.get('stat').value : 0;
             const files = await generateReport(season, stat);
-            if(!files) return await interaction.editReply('The data for this season was not recorded');
+            if(!files) return await interaction.editReply({
+                content: 'The data for this season was not recorded',
+                ephemeral: true
+            });
             await interaction.editReply(
                 {
                     content: '',
-                    files:files
+                    files:files,
+                    ephimeral: true
                 });
             break;
         case 'feed':
-            await interaction.reply("Inputting the data...");
+            await interaction.deferReply();
             try {
                 const data = interaction.options.get('data').value;
                 const json = JSON.parse(data);
@@ -72,10 +77,16 @@ client.on('interactionCreate', async interaction => {
                         await interaction.editReply('Error: ' + res.error);
                         return;
                     }
-                    await interaction.editReply('Data fed successfully');
+                    await interaction.editReply({
+                        content: 'Data fed successfully',
+                        ephemeral: true
+                    });
                 });
             } catch (err) {
-                await interaction.editReply('Error: ' + err.message);
+                await interaction.editReply({
+                    content: 'Error: ' + err.message,
+                    ephemeral: true
+                });
             }
             break;
         case 'test':
