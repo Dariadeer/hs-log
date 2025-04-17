@@ -18,17 +18,17 @@ async function processWebhookMessage(message) {
         if(!client.log) throw new Error('The data logging function isn\'t set');
         const data = await (await fetch(file[1].attachment)).json();
         await client.log(data, async res => {
-            if(res.status === 0) {
+            if(res && res.status === 0) {
                 message.react('❗');
                 console.log(res.error);
                 return;
             }
             message.react('✅');
-            if(!utils.isRSEvent(Date.now()) || res.status !== 2) return;
+            if(!utils.isRSEvent(Date.now()) || !res || res.status !== 2) return;
             const files = await generateReport(utils.getLastEventNumber(Date.now()));
             if(!files) return;
-            const guild = await client.guilds.fetch(GUILD)
-            const channel = await guild.channels.fetch(LB_CHANNEL)
+            const guild = await client.guilds.fetch(GUILD);
+            const channel = await guild.channels.fetch(LB_CHANNEL);
             const messages = await channel.messages.fetch({ limit: 20 });
             for(let [id, m] of messages.entries()) {
                 if (m.author.id === process.env.CLIENT) {
@@ -40,24 +40,50 @@ async function processWebhookMessage(message) {
                 await channel.send({
                     // files: generateReport(utils.getLastEventNumber(Date.now()))
                     files: [file]
-                })
+                });
             }
         });
     }
 }
 
 client.on('interactionCreate', async interaction => {
-    if(interaction.commandName === 'report') {
-        await interaction.reply('Generating report...');
-        const season = interaction.options.get('season') ? interaction.options.get('season').value : utils.getLastEventNumber(Date.now());
-        const stat = interaction.options.get('stat') ? interaction.options.get('stat').value : 0;
-        const files = await generateReport(season, stat);
-        if(!files) return await interaction.editReply('The data for this season was not recorded');
-        await interaction.editReply(
-        {
-            content: '',
-            files:files
-        });
+
+    switch (interaction.commandName) {
+        case 'lb':
+        case 'leaderboard':
+            await interaction.reply("Generating report...");
+            const season = interaction.options.get('season') ? interaction.options.get('season').value : utils.getLastEventNumber(Date.now());
+            const stat = interaction.options.get('stat') ? interaction.options.get('stat').value : 0;
+            const files = await generateReport(season, stat);
+            if(!files) return await interaction.editReply('The data for this season was not recorded');
+            await interaction.editReply(
+                {
+                    content: '',
+                    files:files
+                });
+            break;
+        case 'feed':
+            await interaction.reply("Inputting the data...");
+            try {
+                const data = interaction.options.get('data').value;
+                const json = JSON.parse(data);
+                await client.log(json, async res => {
+                    if(res && res.status === 0) {
+                        await interaction.editReply('Error: ' + res.error);
+                        return;
+                    }
+                    await interaction.editReply('Data fed successfully');
+                });
+            } catch (err) {
+                await interaction.editReply('Error: ' + err.message);
+            }
+            break;
+        case 'test':
+            await interaction.reply('Test command executed');
+            break;
+        case 'help':
+            await interaction.reply('Help command executed');
+            break;
     }
 });
 
