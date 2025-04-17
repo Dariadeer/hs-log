@@ -43,7 +43,7 @@ async function log(data, callback) {
             case 'RedStarStarted':
                 // Insert the star
                 await pool.query(
-                    'INSERT INTO stars (ssid, rs_level, drs, rs_start) VALUES (?, ?, ?, ?)',
+                    'INSERT INTO hs_log.stars (ssid, rs_level, drs, rs_start) VALUES (?, ?, ?, ?)',
                     [data.StarSystemID, data.StarLevel, data.DarkRedStar, formatDate(data.Timestamp)]
                 );
                 return callback({
@@ -51,18 +51,18 @@ async function log(data, callback) {
                 });
             case 'RedStarEnded':
                 await pool.query(
-                    'UPDATE stars SET rs_end = ?, rs_points = ?, players = ? WHERE ssid = ?',
+                    'UPDATE hs_log.stars SET rs_end = ?, rs_points = ?, players = ? WHERE ssid = ?',
                     [formatDate(data.Timestamp), data.RSEventPoints, data.PlayersWhoContributed.length, data.StarSystemID]
                 );
                 // Insert players
                 await pool.query(
-                    'INSERT IGNORE INTO players (pid, name) VALUES ?',
+                    'INSERT IGNORE INTO hs_log.players (pid, name) VALUES ?',
                     [data.PlayersWhoContributed.map(player => [player.PlayerID, player.PlayerName])]
                 );
 
                 // Insert participation
                 await pool.query(
-                    'INSERT INTO participation (pid, ssid) VALUES ?',
+                    'INSERT INTO hs_log.participation (pid, ssid) VALUES ?',
                     [data.PlayersWhoContributed.map(player => [player.PlayerID, data.StarSystemID])]
                 );
                 return callback({

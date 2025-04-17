@@ -183,12 +183,13 @@ module.exports = (playerCount, runCount, delay, log) => {
 
     // console.log(events2);
 
-    let count = 0;
+    let count = 1;
+    console.log(events2);
     for(let event of events2) {
         count++;
         setTimeout(async () => {
             await log(event, () => {});
         }, count * delay);
     }
-    console.log('Done');
+    console.log('Simulation events scheduled.');
 }

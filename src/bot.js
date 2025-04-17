@@ -29,7 +29,7 @@ async function processWebhookMessage(message) {
             if(!files) return;
             const guild = await client.guilds.fetch(GUILD)
             const channel = await guild.channels.fetch(LB_CHANNEL)
-            const messages = await channel.messages.fetch({ limit: 10 });
+            const messages = await channel.messages.fetch({ limit: 20 });
             for(let [id, m] of messages.entries()) {
                 if (m.author.id === process.env.CLIENT) {
                     console.log('Found last message!');
