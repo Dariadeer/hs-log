@@ -88,7 +88,7 @@ async function generateCosmicScoreboard(players, eventNumber, offset, limit, max
                 if(stat === 3) playerScore += ' min⁻¹'
                 let w = ctx.measureText(playerScore).width;
                 ctx.fillText(playerScore, canvasWidth - 20, y + 40);
-                ctx.drawImage(rsIcon, canvasWidth - 30 - w - 22, y + 21.5, 22, 22);
+                ctx.drawImage(rsIcon, canvasWidth - 25 - w - 22, y + 21.5, 22, 22);
                 break;
             case 2:
                 let num = value.toLocaleString();

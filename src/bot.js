@@ -3,7 +3,9 @@ const db = require('./db.js');
 const utils = require('./utils.js');
 const images = require('./images.js');
 const e = require('cors');
-const { GUILD, LB_CHANNEL } = process.env;
+const { GUILD, LB_CHANNEL, CMD_CHANNEL, FEEDERS } = process.env;
+
+const feederIds = FEEDERS.split(',').map(id => id.trim());
 
 const stats = require('./reports').stats;
 
@@ -37,34 +39,35 @@ async function processWebhookMessage(message) {
                     await m.delete();
                 }
             }
-            for(let file of files) {
-                await channel.send({
-                    // files: generateReport(utils.getLastEventNumber(Date.now()))
-                    files: [file]
+            const attachments = files.map(file => {
+                return new AttachmentBuilder(file.attachment, {
+                  name: file.name,
                 });
-            }
+              });
+              
+              const embeds = files.map(file => ({
+                color: 0x420000,
+                image: {
+                  url: 'attachment://' + file.name
+                }
+              }));
+              
+              await interaction.editReply({
+                content: '',
+                embeds,
+                files: attachments,
+                ephemeral: true
+              });
         });
     }
 }
 
-const { createCanvas } = require('canvas');
-
-function generateBlackSquare(size = 100) {
-  const canvas = createCanvas(size, size);
-  const ctx = canvas.getContext('2d');
-
-  ctx.fillStyle = 'black';
-  ctx.fillRect(0, 0, size, size);
-
-  return canvas.toBuffer('image/png');
-}
-
 client.on('interactionCreate', async interaction => {
     try {
+        await interaction.deferReply({ephemeral: true});
         switch (interaction.commandName) {
             case 'lb':
             case 'leaderboard':
-                await interaction.deferReply({ephemeral: true});
                 const season = interaction.options.get('season') ? interaction.options.get('season').value : utils.getLastEventNumber(Date.now());
                 const stat = interaction.options.get('stat') ? interaction.options.get('stat').value : 0;
                 const files = await generateReport(season, stat);
@@ -94,7 +97,13 @@ client.on('interactionCreate', async interaction => {
                   });
                 break;
             case 'feed':
-                await interaction.deferReply();
+                if(!feederIds.includes(interaction.user.id)) {
+                    await interaction.editReply({
+                        content: 'You do not have permission to use this command',
+                        ephemeral: true
+                    });
+                    return;
+                }
                 try {
                     const data = interaction.options.get('data').value;
                     const json = JSON.parse(data);
@@ -116,10 +125,13 @@ client.on('interactionCreate', async interaction => {
                 }
                 break;
             case 'test':
-                await interaction.reply('Test command executed');
+                await interaction.editReply('Test command executed');
                 break;
             case 'help':
-                await interaction.reply('Help command executed');
+                await interaction.editReply('Help command executed');
+                break;
+            default:
+                await interaction.editReply('Unknown command');
                 break;
         }
     } catch (err) {
