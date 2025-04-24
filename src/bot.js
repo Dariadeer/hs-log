@@ -17,48 +17,53 @@ client.on('messageCreate', async message => {
 
 async function processWebhookMessage(message) {
     if(message.author.id !== process.env.HOOK) return;
-    for(let file of message.attachments.entries()) {
-        if(!client.log) throw new Error('The data logging function isn\'t set');
-        const data = await (await fetch(file[1].attachment)).json();
-        await client.log(data, async res => {
-            if(res && res.status === 0) {
-                message.react('❗');
-                console.log(res.error);
-                return;
-            }
-            message.react('✅');
-            if(!utils.isRSEvent(Date.now()) || !res || res.status !== 2) return;
-            const files = await generateReport(utils.getLastEventNumber(Date.now()));
-            if(!files) return;
-            const guild = await client.guilds.fetch(GUILD);
-            const channel = await guild.channels.fetch(LB_CHANNEL);
-            const messages = await channel.messages.fetch({ limit: 20 });
-            for(let [id, m] of messages.entries()) {
-                if (m.author.id === process.env.CLIENT) {
-                    console.log('Found last message!');
-                    await m.delete();
+    try {
+        for(let file of message.attachments.entries()) {
+            if(!client.log) throw new Error('The data logging function isn\'t set');
+            const data = await (await fetch(file[1].attachment)).json();
+            await client.log(data, async res => {
+                if(res && res.status === 0) {
+                    message.react('❗');
+                    console.log(res.error);
+                    return;
                 }
-            }
-            const attachments = files.map(file => {
-                return new AttachmentBuilder(file.attachment, {
-                  name: file.name,
+                message.react('✅');
+                if(!utils.isRSEvent(Date.now()) || !res || res.status !== 2) return;
+                const files = await generateReport(utils.getLastEventNumber(Date.now()));
+                if(!files) return;
+                const guild = await client.guilds.fetch(GUILD);
+                const channel = await guild.channels.fetch(LB_CHANNEL);
+                const messages = await channel.messages.fetch({ limit: 20 });
+                for(let [id, m] of messages.entries()) {
+                    if (m.author.id === process.env.CLIENT) {
+                        console.log('Found last message!');
+                        await m.delete();
+                    }
+                }
+                const attachments = files.map(file => {
+                    return new AttachmentBuilder(file.attachment, {
+                    name: file.name,
+                    });
                 });
-              });
-              
-              const embeds = files.map(file => ({
-                color: 0x420000,
-                image: {
-                  url: 'attachment://' + file.name
-                }
-              }));
-              
-              await interaction.editReply({
-                content: '',
-                embeds,
-                files: attachments,
-                ephemeral: true
-              });
-        });
+                
+                const embeds = files.map(file => ({
+                    color: 0x420000,
+                    image: {
+                    url: 'attachment://' + file.name
+                    }
+                }));
+                
+                await interaction.editReply({
+                    content: '',
+                    embeds,
+                    files: attachments,
+                    ephemeral: true
+                });
+            });
+        }
+    } catch (err) {
+        // If wrong lb channel, most likely
+        console.error(err);
     }
 }
 

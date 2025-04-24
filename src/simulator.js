@@ -1,5 +1,4 @@
 const { WebhookClient } = require('discord.js');
-const fs = require('fs');
 
 class RSEventEntry {
     /**
