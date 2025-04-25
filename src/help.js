@@ -12,7 +12,7 @@ function generateImage() {
     ctx.strokeStyle = '#0000';
 
     ctx.fillStyle = 'rgb(50, 50, 80)';
-    ctx.font = 'bold 38px "Arial", sans-serif';
+    ctx.font = 'bold 38px "IBM Plex Sans"';
     ctx.fillRect(0, 0, width, height);
 
     ctx.fillStyle = 'rgb(107, 107, 216)';
@@ -25,7 +25,7 @@ function generateImage() {
 
         ctx.textAlign = 'left';
         ctx.fillStyle = 'rgb(52, 207, 148)';
-        ctx.font = 'bold 30px "Arial", sans-serif';
+        ctx.font = 'bold 30px "IBM Plex Sans"';
         ctx.fillText('/' + name, x + 10, y + 40);
 
         let paramOffset = 105;
@@ -33,10 +33,10 @@ function generateImage() {
         const paramNameOffset = 200;
         const descriptionOffset = 350;
 
-        ctx.font = 'bold 25px "Arial", sans-serif';
+        ctx.font = 'bold 25px "IBM Plex Sans"';
         ctx.fillStyle = 'rgb(178, 103, 212)';
         ctx.fillText('description', x + 25, y + 80);
-        ctx.font = '20px "Roboto", sans-serif';
+        ctx.font = '20px "IBM Plex Sans"';
         ctx.fillStyle = '#ddf';
         const descriptionRows = breakIntoLines(command.description, 600, ctx);
         let rowId = 0;
@@ -53,7 +53,7 @@ function generateImage() {
        
         for(let param of command.options) {
 
-            ctx.font = 'bold 25px "Arial", sans-serif';
+            ctx.font = 'bold 25px "IBM Plex Sans"';
 
             ctx.fillText('param ' + paramId, x + 25, y + paramOffset);
 
@@ -66,7 +66,7 @@ function generateImage() {
             ctx.fillStyle = '#ddf';
             ctx.fillText(param.name, x + paramNameOffset, y + paramOffset);
 
-            ctx.font = '20px "Roboto", sans-serif';
+            ctx.font = '20px "IBM Plex Sans"';
             ctx.fillText(param.description, x + descriptionOffset, y + paramOffset);
 
             paramOffset += 50;
@@ -103,5 +103,7 @@ function breakIntoLines(str, lineWidth, ctx) {
     return rows;
 
 }
+
+generateImage();
 
 module.exports = generateImage;
