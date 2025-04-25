@@ -1,2 +1,3 @@
 require('dotenv').config();
-require('./src/bot-slash')();
+require('./src/help')();
+require('./src/bot-slash').setup();

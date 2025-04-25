@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, DiscordAPIError, EmbedBuilder, EmbedType, Att
 const db = require('./db.js');
 const utils = require('./utils.js');
 const images = require('./images.js');
-const e = require('cors');
+const fs = require('fs');
 const { GUILD, LB_CHANNEL, CMD_CHANNEL, FEEDERS } = process.env;
 
 const feederIds = FEEDERS.split(',').map(id => id.trim());
@@ -133,7 +133,15 @@ client.on('interactionCreate', async interaction => {
                 await interaction.editReply('Test command executed');
                 break;
             case 'help':
-                await interaction.editReply('Help command executed');
+                await interaction.editReply({
+                    files: [
+                        {
+                            name: 'help.png',
+                            attachment: fs.readFileSync('./resources/images/help.png')
+                        }
+                    ],
+                    ephemeral: true
+                });
                 break;
             default:
                 await interaction.editReply('Unknown command');
