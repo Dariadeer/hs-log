@@ -3,3 +3,4 @@ package-lock.json
 .env
 test/*
 .idea
+resources/images/help.png
