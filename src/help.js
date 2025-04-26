@@ -28,6 +28,12 @@ function generateImage() {
         ctx.font = 'bold 30px "Arial", sans-serif';
         ctx.fillText('/' + name, x + 10, y + 40);
 
+        if(command.aliases.length > 1) {
+            ctx.fillStyle = 'rgb(100, 134, 121)';
+            ctx.fillText(command.aliases.slice(1).map(c => '/' + c).join(', '), x + 50 + ctx.measureText('/' + name).width, y + 40);
+        }
+
+
         let paramOffset = 105;
         let paramId = 1;
         const paramNameOffset = 200;
@@ -55,7 +61,11 @@ function generateImage() {
 
             ctx.font = 'bold 25px "Arial", sans-serif';
 
-            ctx.fillText('param ' + paramId, x + 25, y + paramOffset);
+            if(paramId === 1) {
+                ctx.fillStyle = 'rgb(214, 214, 214)';
+                ctx.fillText('params', x + 25, y + paramOffset);
+            }
+            
 
             ctx.fillStyle = 'rgb(48, 32, 70)'
             ctx.beginPath();
