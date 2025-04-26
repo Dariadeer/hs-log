@@ -53,11 +53,10 @@ async function processWebhookMessage(message) {
                     }
                 }));
                 
-                await interaction.editReply({
+                await channel.send({
                     content: '',
                     embeds,
-                    files: attachments,
-                    ephemeral: true
+                    files: attachments
                 });
             });
         }
