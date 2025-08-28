@@ -151,7 +151,6 @@ async function sendReport(files) {
     const messages = await channel.messages.fetch({ limit: 20 });
     for(let [id, m] of messages.entries()) {
         if (m.author.id === process.env.CLIENT) {
-            console.log('Found last message!');
             await m.delete();
         }
     }
