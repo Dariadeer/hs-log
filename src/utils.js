@@ -37,3 +37,5 @@ module.exports = {
     getLastEventNumber,
     isRSEvent
 }
+
+console.log(getEventTimeframe(41));

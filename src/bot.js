@@ -15,6 +15,12 @@ client.on('messageCreate', async message => {
     processWebhookMessage(message);
 });
 
+client.updateScoreboard = async () => {
+    const files = await generateReport(utils.getLastEventNumber(Date.now()));
+    if(!files) return;
+    await sendReport(files);
+}
+
 async function processWebhookMessage(message) {
     if(message.author.id !== process.env.HOOK) return;
     try {
@@ -31,33 +37,7 @@ async function processWebhookMessage(message) {
                 if(!utils.isRSEvent(Date.now()) || !res || res.status !== 2) return;
                 const files = await generateReport(utils.getLastEventNumber(Date.now()));
                 if(!files) return;
-                const guild = await client.guilds.fetch(GUILD);
-                const channel = await guild.channels.fetch(LB_CHANNEL);
-                const messages = await channel.messages.fetch({ limit: 20 });
-                for(let [id, m] of messages.entries()) {
-                    if (m.author.id === process.env.CLIENT) {
-                        console.log('Found last message!');
-                        await m.delete();
-                    }
-                }
-                const attachments = files.map(file => {
-                    return new AttachmentBuilder(file.attachment, {
-                    name: file.name,
-                    });
-                });
-                
-                const embeds = files.map(file => ({
-                    color: 0x420000,
-                    image: {
-                    url: 'attachment://' + file.name
-                    }
-                }));
-                
-                await channel.send({
-                    content: '',
-                    embeds,
-                    files: attachments
-                });
+                await sendReport(files);
             });
         }
     } catch (err) {
@@ -165,67 +145,34 @@ async function generateReport(season, stat) {
     return files;
 }
 
-// async function processInteraction(interaction) {
-//     switch (interaction.commandName) {
-//         case 'lb':
-//         case 'leaderboard':
-//             await interaction.deferReply({ephemeral: true});
-//             const season = interaction.options.get('season') ? interaction.options.get('season').value : utils.getLastEventNumber(Date.now());
-//             const stat = interaction.options.get('stat') ? interaction.options.get('stat').value : 0;
-//             const files = await generateReport(season, stat);
-//             if(!files) return await interaction.editReply({
-//                 content: 'The data for this season was not recorded',
-//                 ephemeral: true
-//             });
-            
-//             for (const file of files) {
-//                 const embed = new EmbedBuilder()
-//                 .setColor(0x0099FF)
-//                 .setTitle('Leaderboard')
-//                 .setDescription('Season ' + season)
-//                 .setImage('attachment://' + file.name)
-//                 .setTimestamp()
-//                 .setFooter({ text: 'StarSystem' });
-            
-//                 const attachment = new AttachmentBuilder(file.attachment, { name: file.name });
-            
-//                 await interaction.followUp({
-//                 embeds: [embed],
-//                 files: [attachment],
-//                 ephemeral: true
-//                 });
-//                 break;
-//             }
-//             break;
-//         case 'feed':
-//             await interaction.deferReply({ephemeral:true});
-//             try {
-//                 const data = interaction.options.get('data').value;
-//                 const json = JSON.parse(data);
-//                 await client.log(json, async res => {
-//                     if(res && res.status === 0) {
-//                         await interaction.editReply('Error: ' + res.error);
-//                         return;
-//                     }
-//                     await interaction.editReply({
-//                         content: 'Data fed successfully',
-//                         ephemeral: true
-//                     });
-//                 });
-//             } catch (err) {
-//                 await interaction.editReply({
-//                     content: 'Error: ' + err.message,
-//                     ephemeral: true
-//                 });
-//             }
-//             break;
-//         case 'test':
-//             await interaction.reply('Test command executed');
-//             break;
-//         case 'help':
-//             await interaction.reply('Help command executed');
-//             break;
-//     }
-// }
+async function sendReport(files) {
+    const guild = await client.guilds.fetch(GUILD);
+    const channel = await guild.channels.fetch(LB_CHANNEL);
+    const messages = await channel.messages.fetch({ limit: 20 });
+    for(let [id, m] of messages.entries()) {
+        if (m.author.id === process.env.CLIENT) {
+            console.log('Found last message!');
+            await m.delete();
+        }
+    }
+    const attachments = files.map(file => {
+        return new AttachmentBuilder(file.attachment, {
+        name: file.name,
+        });
+    });
+    
+    const embeds = files.map(file => ({
+        color: 0x420000,
+        image: {
+        url: 'attachment://' + file.name
+        }
+    }));
+    
+    await channel.send({
+        content: '',
+        embeds,
+        files: attachments
+    });
+}
 
 module.exports = client;

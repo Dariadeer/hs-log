@@ -136,7 +136,7 @@ module.exports = (playerCount, runCount, delay, log) => {
 
     if(!log) log = sendData;
 
-    const start = 1745625600000;
+    const start = 1755302400000;
 
     const players = [];
     const events = [];
