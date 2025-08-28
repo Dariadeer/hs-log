@@ -1,7 +1,7 @@
 require('dotenv').config();
 
-const bot = require('../src/bot');
-const db = require('../src/db');
+const bot = require('../bot');
+const db = require('../db');
 
 bot.log = db.log;
 
