@@ -1,4 +1,5 @@
 const { REST, Routes } = require('discord.js');
+const { destroy } = require('./bot');
 const { CLIENT, GUILD, TOKEN } = process.env;
 
 const commandsRaw = [
@@ -58,6 +59,9 @@ const commandsRaw = [
                 type: 3
             }
         ]
+    }, {
+        aliases: ['artpoll'],
+        description: 'Starts an artifact poll'
     }
 ]
 

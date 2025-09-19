@@ -1,19 +1,46 @@
-const { Client, GatewayIntentBits, DiscordAPIError, EmbedBuilder, EmbedType, AttachmentBuilder} = require('discord.js');
+const { Client, GatewayIntentBits, DiscordAPIError, EmbedBuilder, EmbedType, AttachmentBuilder, PollLayoutType, Poll} = require('discord.js');
 const db = require('./db.js');
 const utils = require('./utils.js');
 const images = require('./images.js');
 const fs = require('fs');
-const { GUILD, LB_CHANNEL, CMD_CHANNEL, FEEDERS } = process.env;
+const { GUILD, LB_CHANNEL, FEEDERS, EMOJI_IDS } = process.env;
 
 const feederIds = FEEDERS.split(',').map(id => id.trim());
+const emojiIds = EMOJI_IDS.split(',').map(id => id.trim());
+
+const artPoll = {
+      question: { text: 'What type of art are you researching this week?' },
+      answers: [
+        { text: 'Transport', emoji: `<:ArtTransport:${emojiIds[0]}>` },
+        { text: 'Miner', emoji: `<:ArtMiner:${emojiIds[1]}>` },
+        { text: 'Weapon', emoji: `<:ArtWeapon:${emojiIds[2]}>` },
+        { text: 'Shield', emoji: `<:ArtShield:${emojiIds[3]}>` },
+        { text: 'Combat', emoji: `<:ArtCombat:${emojiIds[4]}>` },
+        { text: 'Drone', emoji: `<:ArtDrone:${emojiIds[5]}>` },
+        { text: 'Anything to fill research', emoji: `<:ResearchStation:${emojiIds[6]}>` },
+      ],
+      allowMultiselect: true,
+      duration: 24*7,
+      layoutType: PollLayoutType.Default,
+    };
 
 const stats = require('./reports').stats;
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessagePolls] });
 
 client.on('messageCreate', async message => {
     processWebhookMessage(message);
 });
+
+client.createPoll = async (channelId) => {
+    const guild = await client.guilds.fetch(GUILD);
+    const channel = await guild.channels.fetch(channelId);
+    channel.send({ poll: artPoll });
+}
+
+client.getMessageInfo = async (channelId, messageId) => {
+    return (await client.channels.fetch(channelId)).messages.fetch(messageId);
+}
 
 client.updateScoreboard = async () => {
     const files = await generateReport(utils.getLastEventNumber(Date.now()));
@@ -48,10 +75,10 @@ async function processWebhookMessage(message) {
 
 client.on('interactionCreate', async interaction => {
     try {
-        await interaction.deferReply({ephemeral: true});
         switch (interaction.commandName) {
             case 'lb':
             case 'leaderboard':
+                await interaction.deferReply({ ephemeral: true });
                 const season = interaction.options.get('season') ? interaction.options.get('season').value : utils.getLastEventNumber(Date.now());
                 const stat = interaction.options.get('stat') ? interaction.options.get('stat').value : 0;
                 const files = await generateReport(season, stat);
@@ -81,6 +108,7 @@ client.on('interactionCreate', async interaction => {
                   });
                 break;
             case 'feed':
+                await interaction.deferReply({ ephemeral: true });
                 if(!feederIds.includes(interaction.user.id)) {
                     await interaction.editReply({
                         content: 'You do not have permission to use this command',
@@ -112,14 +140,21 @@ client.on('interactionCreate', async interaction => {
                 await interaction.editReply('Test command executed');
                 break;
             case 'help':
+                await interaction.deferReply({ ephemeral: true });
                 await interaction.editReply({
                     files: [
                         {
                             name: 'help.png',
                             attachment: fs.readFileSync('./resources/images/help.png')
                         }
-                    ],
-                    ephemeral: true
+                    ]
+                });
+                break;
+            case 'artpoll':
+                await interaction.deferReply();
+                await interaction.editReply({
+                    poll: artPoll,
+                    ephemeral: false
                 });
                 break;
             default:

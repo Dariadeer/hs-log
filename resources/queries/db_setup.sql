@@ -23,6 +23,12 @@ CREATE TABLE IF NOT EXISTS `players` (
   `name` VARCHAR(64) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS `vars` (
+  `key` VARCHAR(64),
+  `value` VARCHAR(64),
+  PRIMARY KEY (`key`)
+);
+
 ALTER TABLE `participation` ADD FOREIGN KEY (`ssid`) REFERENCES `stars` (`ssid`);
 
 ALTER TABLE `participation` ADD FOREIGN KEY (`pid`) REFERENCES `players` (`pid`);
