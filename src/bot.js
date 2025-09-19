@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, DiscordAPIError, EmbedBuilder, EmbedType, AttachmentBuilder, PollLayoutType, Poll} = require('discord.js');
+const { Client, GatewayIntentBits, DiscordAPIError, EmbedBuilder, EmbedType, AttachmentBuilder, PollLayoutType, MessageFlags} = require('discord.js');
 const db = require('./db.js');
 const utils = require('./utils.js');
 const images = require('./images.js');
@@ -78,13 +78,12 @@ client.on('interactionCreate', async interaction => {
         switch (interaction.commandName) {
             case 'lb':
             case 'leaderboard':
-                await interaction.deferReply({ ephemeral: true });
+                await interaction.deferReply({ flags: MessageFlags.Ephemeral });
                 const season = interaction.options.get('season') ? interaction.options.get('season').value : utils.getLastEventNumber(Date.now());
                 const stat = interaction.options.get('stat') ? interaction.options.get('stat').value : 0;
                 const files = await generateReport(season, stat);
                 if(!files) return await interaction.editReply({
                     content: 'The data for this season was not recorded',
-                    ephemeral: true
                 });
                 
                 const attachments = files.map(file => {
@@ -103,12 +102,11 @@ client.on('interactionCreate', async interaction => {
                   await interaction.editReply({
                     content: '',
                     embeds,
-                    files: attachments,
-                    ephemeral: true
+                    files: attachments
                   });
                 break;
             case 'feed':
-                await interaction.deferReply({ ephemeral: true });
+                await interaction.deferReply({ flags: MessageFlags.Ephemeral });
                 if(!feederIds.includes(interaction.user.id)) {
                     await interaction.editReply({
                         content: 'You do not have permission to use this command',
@@ -126,13 +124,11 @@ client.on('interactionCreate', async interaction => {
                         }
                         await interaction.editReply({
                             content: 'Data fed successfully',
-                            ephemeral: true
                         });
                     });
                 } catch (err) {
                     await interaction.editReply({
                         content: 'Error: ' + err.message,
-                        ephemeral: true
                     });
                 }
                 break;
@@ -140,7 +136,7 @@ client.on('interactionCreate', async interaction => {
                 await interaction.editReply('Test command executed');
                 break;
             case 'help':
-                await interaction.deferReply({ ephemeral: true });
+                await interaction.deferReply({ flags: MessageFlags.Ephemeral });
                 await interaction.editReply({
                     files: [
                         {
@@ -153,8 +149,7 @@ client.on('interactionCreate', async interaction => {
             case 'artpoll':
                 await interaction.deferReply();
                 await interaction.editReply({
-                    poll: artPoll,
-                    ephemeral: false
+                    poll: artPoll
                 });
                 break;
             default:
