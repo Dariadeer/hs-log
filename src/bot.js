@@ -189,7 +189,8 @@ client.on('interactionCreate', async interaction => {
                             const guild = await client.guilds.fetch(GUILD);
                             console.log(GUILD);
                             const channel = await guild.channels.fetch(channelId);
-                            console.log(channel)
+                            console.log(channel);
+                            await channel.join();
                             const poll = await channel.messages.fetch(pollId);
                             console.log(poll);
                             console.log(poll.poll, poll.interaction, poll.author);
