@@ -185,7 +185,7 @@ client.on('interactionCreate', async interaction => {
                         try {
                             const channelId = interaction.options.get('channel_id').value;
                             const pollId = interaction.options.get('poll_id').value;
-                            console.log(channelId, messageId);
+                            console.log(channelId, pollId);
                             const guild = await client.guilds.fetch(GUILD);
                             console.log(GUILD);
                             const channel = await guild.channels.fetch(channelId);
