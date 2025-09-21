@@ -185,9 +185,13 @@ client.on('interactionCreate', async interaction => {
                         try {
                             const channelId = interaction.options.get('channel_id').value;
                             const pollId = interaction.options.get('poll_id').value;
+                            console.log(channelId, messageId);
                             const guild = await client.guilds.fetch(GUILD);
+                            console.log(GUILD);
                             const channel = await guild.channels.fetch(channelId);
+                            console.log(channel)
                             const poll = await channel.messages.fetch(pollId);
+                            console.log(poll);
                             console.log(poll.poll, poll.interaction, poll.author);
                             if(poll.poll && poll.author.id === CLIENT) {
                                 await db.setArtPollData(channel.id, poll.id);
