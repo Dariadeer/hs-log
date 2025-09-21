@@ -1,7 +1,6 @@
 const { REST, Routes } = require('discord.js');
 const { destroy } = require('./bot');
 const { CLIENT, GUILD, TOKEN } = process.env;
-
 const commandsRaw = [
     {
         aliases: ['help'],
@@ -48,7 +47,8 @@ const commandsRaw = [
                 ]
             }
         ]
-    }, {
+    },
+    {
         aliases: ['feed'],
         description: 'Manually inserts data from the given JSON string into the DB (authorized users only)',
         options: [
@@ -59,9 +59,48 @@ const commandsRaw = [
                 type: 3
             }
         ]
-    }, {
+    },
+    {
         aliases: ['artpoll'],
-        description: 'Starts an artifact poll'
+        description: 'Group of /artpoll commands',
+        prefix: true,
+        options: [
+            {
+                type: 1,
+                name: 'create',
+                description: 'Creates an artifact poll'
+            },
+            {
+                type: 1,
+                name: 'monitor',
+                description: 'Starts monitoring an artifact poll to refresh it once it is over',
+                options: [
+                    {
+                        name: 'channel_id',
+                        description: 'Id of the poll channel',
+                        required: true,
+                        type: 3
+                    },
+                    {
+                        name: 'poll_id',
+                        description: 'Id of the poll message',
+                        required: true,
+                        type: 3
+                    }
+                    
+                ]
+            },
+            {
+                type: 1,
+                name: 'forget',
+                description: 'Stops monitoring the artifact poll'
+            },
+            {
+                type: 1,
+                name: 'status',
+                description: 'Reveals the poll that\'s being monitored'
+            }
+        ]
     }
 ]
 

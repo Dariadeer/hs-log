@@ -3,7 +3,7 @@ const { createCanvas } = require('canvas');
 const fs = require('fs');
 const path = require('path');
 
-const width = 800, height = 800;
+const width = 800, height = 1100;
 
 function generateImage() {
     const canvas = createCanvas(width, height);
@@ -20,44 +20,56 @@ function generateImage() {
     ctx.fillText('Quilliance Assistant\'s Commands', width / 2, 50);
 
     let x = 0, y = 50;
+
+    const commandOffset = 30;
+
+    const paramNameOffset = 200;
+    const descriptionOffset = 350;
+
     for(let command of commandsRaw) {
-        const name = command.aliases[0];
-
-        ctx.textAlign = 'left';
-        ctx.fillStyle = 'rgb(52, 207, 148)';
-        ctx.font = 'bold 30px "Arial", sans-serif';
-        ctx.fillText('/' + name, x + 10, y + 40);
-
-        if(command.aliases.length > 1) {
-            ctx.fillStyle = 'rgb(100, 134, 121)';
-            ctx.fillText(command.aliases.slice(1).map(c => '/' + c).join(', '), x + 50 + ctx.measureText('/' + name).width, y + 40);
-        }
-
 
         let paramOffset = 105;
         let paramId = 1;
-        const paramNameOffset = 200;
-        const descriptionOffset = 350;
 
-        ctx.font = 'bold 25px "Arial", sans-serif';
-        ctx.fillStyle = 'rgb(178, 103, 212)';
-        ctx.fillText('description', x + 25, y + 80);
-        ctx.font = '20px "Roboto", sans-serif';
-        ctx.fillStyle = '#ddf';
-        const descriptionRows = breakIntoLines(command.description, 600, ctx);
-        let rowId = 0;
-        for(let row of descriptionRows) {
-            ctx.fillText(row, x + paramNameOffset, y + 80 + rowId * 25);
-            rowId++;
-            paramOffset += 25;
+        if(!command.prefix) {
+            const name = command.aliases[0];
+
+            ctx.textAlign = 'left';
+            ctx.fillStyle = 'rgb(52, 207, 148)';
+            ctx.font = 'bold 30px "Arial", sans-serif';
+            ctx.fillText('/' + name, x + 10, y + 40);
+
+            if(command.aliases.length > 1) {
+                ctx.fillStyle = 'rgb(100, 134, 121)';
+                ctx.fillText(command.aliases.slice(1).map(c => '/' + c).join(', '), x + 50 + ctx.measureText('/' + name).width, y + 40);
+            }
+
+            ctx.font = 'bold 25px "Arial", sans-serif';
+            ctx.fillStyle = 'rgb(178, 103, 212)';
+            ctx.fillText('description', x + 25, y + 80);
+            ctx.font = '20px "Roboto", sans-serif';
+            ctx.fillStyle = '#ddf';
+            const descriptionRows = breakIntoLines(command.description, 600, ctx);
+            let rowId = 0;
+            for(let row of descriptionRows) {
+                ctx.fillText(row, x + paramNameOffset, y + 80 + rowId * 25);
+                rowId++;
+                paramOffset += 25;
+            }
         }
 
         if(!command.options) {
-            y += paramOffset;
+            y += paramOffset - 40;
             continue;
         }
        
         for(let param of command.options) {
+
+            if(param.type === 1) {
+                param.aliases = command.aliases.map(alias => alias + ' ' + param.name);
+                commandsRaw.push(param);
+                continue;
+            }
 
             ctx.font = 'bold 25px "Arial", sans-serif';
 
@@ -83,7 +95,7 @@ function generateImage() {
             paramId++;
         }
 
-        y += paramOffset;
+        y += paramOffset - 40;
 
 
     }

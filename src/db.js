@@ -115,20 +115,66 @@ async function report(season, stat) {
     return results;
 }
 
-function connect(callback) {
+async function connect(callback) {
     pool.getConnection(async (err, connection) => {
         if (err) throw err;
         console.log("Connected to the DB successfully!");
         await setup();
+        await checkArtPollId();
         console.log("DB setup completed!");
         callback();
         connection.release();
     });
 }
 
+async function checkArtPollId() {
+    await pool.query('use hs_log');
+    const message = await pool.query(`SELECT value FROM vars WHERE \`key\` = 'ArtPollMessageId'`);
+    if(message.length === 0) {
+        await pool.query(`
+            INSERT INTO vars VALUES ('ArtPollMessageId', NULL)
+        `);
+    }
+    const channel = await pool.query(`SELECT value FROM vars WHERE \`key\` = 'ArtPollChannelId'`);
+    if(channel.length === 0) {
+        await pool.query(`
+            INSERT INTO vars VALUES ('ArtPollChannelId', NULL)
+        `);
+    }
+}
+
+async function setArtPollData(channelId, pollId) {
+    await pool.query('use hs_log');
+    await pool.query(`
+        UPDATE vars SET \`value\` = '${pollId}' WHERE \`key\` = 'ArtPollMessageId'
+    `);
+    await pool.query(`
+        UPDATE vars SET \`value\` = '${channelId}' WHERE \`key\` = 'ArtPollChannelId'
+    `);
+}
+
+async function resetArtPollData() {
+    await pool.query('use hs_log');
+    await pool.query(`
+        UPDATE vars SET \`value\` = NULL WHERE \`key\` = 'ArtPollMessageId'
+    `);
+    await pool.query(`
+        UPDATE vars SET \`value\` = NULL WHERE \`key\` = 'ArtPollChannelId'
+    `);
+}
+
+async function getArtPollData () {
+    await pool.query('use hs_log');
+    const result = await pool.query(`SELECT * FROM vars WHERE \`key\`='ArtPollMessageId' OR \`key\` = 'ArtPollChannelId'`);
+    return [result.find(e => e.key === 'ArtPollChannelId').value, result.find(e => e.key === 'ArtPollMessageId').value];
+}
+
 module.exports = {
     log,
     report,
     query: pool.query,
-    connect
+    connect,
+    getArtPollData,
+    setArtPollData,
+    resetArtPollData
 };

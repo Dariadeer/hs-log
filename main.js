@@ -7,7 +7,7 @@ db.connect(async () => {
     await bot.login(process.env.TOKEN);
 });
 
-bot.once('ready', async () => {
+bot.once('clientReady', async () => {
     console.log('Discord Bot Ready!');
 });
 

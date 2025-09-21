@@ -3,26 +3,31 @@ const db = require('./db.js');
 const utils = require('./utils.js');
 const images = require('./images.js');
 const fs = require('fs');
-const { GUILD, LB_CHANNEL, FEEDERS, EMOJI_IDS } = process.env;
+const { CLIENT, GUILD, LB_CHANNEL, MODERATORS, MODERATOR_ROLES, EMOJI_IDS, ART_ROLE_ID, ART_POLL_DURATION } = process.env;
+const ART_POLL_CHECK_INTERVAL = 300000;
+const ART_POLL_DURATION_NUM = parseInt(ART_POLL_DURATION);
 
-const feederIds = FEEDERS.split(',').map(id => id.trim());
+const moderatorIds = MODERATORS.split(',').map(id => id.trim());
 const emojiIds = EMOJI_IDS.split(',').map(id => id.trim());
 
-const artPoll = {
-      question: { text: 'What type of art are you researching this week?' },
-      answers: [
-        { text: 'Transport', emoji: `<:ArtTransport:${emojiIds[0]}>` },
-        { text: 'Miner', emoji: `<:ArtMiner:${emojiIds[1]}>` },
-        { text: 'Weapon', emoji: `<:ArtWeapon:${emojiIds[2]}>` },
-        { text: 'Shield', emoji: `<:ArtShield:${emojiIds[3]}>` },
-        { text: 'Combat', emoji: `<:ArtCombat:${emojiIds[4]}>` },
-        { text: 'Drone', emoji: `<:ArtDrone:${emojiIds[5]}>` },
-        { text: 'Anything to fill research', emoji: `<:ResearchStation:${emojiIds[6]}>` },
-      ],
-      allowMultiselect: true,
-      duration: 24*7,
-      layoutType: PollLayoutType.Default,
-    };
+const artPollMessage = {
+    poll: {
+        question: { text: 'What type of art are you researching this week?' },
+        answers: [
+            { text: 'Transport', emoji: `<:ArtTransport:${emojiIds[0]}>` },
+            { text: 'Miner', emoji: `<:ArtMiner:${emojiIds[1]}>` },
+            { text: 'Weapon', emoji: `<:ArtWeapon:${emojiIds[2]}>` },
+            { text: 'Shield', emoji: `<:ArtShield:${emojiIds[3]}>` },
+            { text: 'Combat', emoji: `<:ArtCombat:${emojiIds[4]}>` },
+            { text: 'Drone', emoji: `<:ArtDrone:${emojiIds[5]}>` },
+            { text: 'Anything to fill research', emoji: `<:ResearchStation:${emojiIds[6]}>` },
+        ],
+        allowMultiselect: true,
+        duration: ART_POLL_DURATION_NUM,
+        layoutType: PollLayoutType.Default,
+    },
+    content: '<@&' + ART_ROLE_ID + '>'
+};
 
 const stats = require('./reports').stats;
 
@@ -35,10 +40,11 @@ client.on('messageCreate', async message => {
 client.createPoll = async (channelId) => {
     const guild = await client.guilds.fetch(GUILD);
     const channel = await guild.channels.fetch(channelId);
-    channel.send({ poll: artPoll });
+    channel.send(artPollMessage);
 }
 
 client.getMessageInfo = async (channelId, messageId) => {
+    (await client.guilds.fetch('')).messages
     return (await client.channels.fetch(channelId)).messages.fetch(messageId);
 }
 
@@ -47,6 +53,23 @@ client.updateScoreboard = async () => {
     if(!files) return;
     await sendReport(files);
 }
+
+client.checkArtPoll = async () => {
+    const [channelId, pollId] = await db.getArtPollData();
+
+    if(!channelId || !pollId) return;
+
+    const guild = await client.guilds.fetch(GUILD);
+    const channel = await guild.channels.fetch(channelId);
+    const poll = await channel.messages.fetch(pollId);
+
+    if(poll.poll.resultsFinalized) {
+        const sent = await channel.send(artPollMessage);
+        db.setArtPollData(channelId, sent.id);
+    }
+}
+
+setInterval(() => client.checkArtPoll(), ART_POLL_CHECK_INTERVAL);
 
 async function processWebhookMessage(message) {
     if(message.author.id !== process.env.HOOK) return;
@@ -88,7 +111,7 @@ client.on('interactionCreate', async interaction => {
                 
                 const attachments = files.map(file => {
                     return new AttachmentBuilder(file.attachment, {
-                      name: file.name,
+                      name: file.name
                     });
                   });
                   
@@ -107,10 +130,9 @@ client.on('interactionCreate', async interaction => {
                 break;
             case 'feed':
                 await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-                if(!feederIds.includes(interaction.user.id)) {
+                if(!validateUser(interaction.user)) {
                     await interaction.editReply({
-                        content: 'You do not have permission to use this command',
-                        ephemeral: true
+                        content: 'You do not have permission to use this command'
                     });
                     return;
                 }
@@ -128,7 +150,7 @@ client.on('interactionCreate', async interaction => {
                     });
                 } catch (err) {
                     await interaction.editReply({
-                        content: 'Error: ' + err.message,
+                        content: 'Error: ' + err.message
                     });
                 }
                 break;
@@ -147,10 +169,61 @@ client.on('interactionCreate', async interaction => {
                 });
                 break;
             case 'artpoll':
-                await interaction.deferReply();
-                await interaction.editReply({
-                    poll: artPoll
-                });
+                switch(interaction.options.getSubcommand()) {
+                    case 'create':
+                        await interaction.deferReply();
+                        await interaction.editReply(artPollMessage);
+                        break;
+                    case 'monitor':
+                        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+                        if(!validateUser(interaction.user)) {
+                            await interaction.editReply({
+                                content: 'You do not have permission to use this command'
+                            });
+                            return;
+                        }
+                        try {
+                            const channelId = interaction.options.get('channel_id').value;
+                            const pollId = interaction.options.get('poll_id').value;
+                            const guild = await client.guilds.fetch(GUILD);
+                            const channel = await guild.channels.fetch(channelId);
+                            const poll = await channel.messages.fetch(pollId);
+                            console.log(poll.poll, poll.interaction, poll.author);
+                            if(poll.poll && poll.author.id === CLIENT) {
+                                await db.setArtPollData(channel.id, poll.id);
+                                await interaction.editReply('Success! Now monitoring poll ' + pollId);
+                            } else {
+                                await interaction.editReply('Failed to start monitoring poll ' + pollId);
+                            }
+                        } catch {
+                            await interaction.editReply('Failed to start monitoring the poll');
+                        }
+                        break;
+                    case 'status':
+                        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+                        const [channelId, pollId] = await db.getArtPollData();
+                        if(channelId && pollId) {
+                            await interaction.editReply(`Monitoring https://discord.com/channels/${GUILD}/${channelId}/${pollId}`);
+                        } else {
+                            await interaction.editReply(`No artifact poll is being monitored`);
+                        }
+                        break;
+                    case 'forget':
+                        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+                        if(!validateUser(interaction.user)) {
+                            await interaction.editReply({
+                                content: 'You do not have permission to use this command'
+                            });
+                            return;
+                        }
+                        try {
+                            await db.resetArtPollData();
+                            await interaction.editReply('From now on, no artifact poll is being monitored')
+                        } catch {
+                            await interaction.editReply('Failed to stop the monitoring')
+                        }
+                        break;
+                }
                 break;
             default:
                 await interaction.editReply('Unknown command');
@@ -160,6 +233,10 @@ client.on('interactionCreate', async interaction => {
         console.error(err);
     }
 });
+
+function validateUser(user) {
+    return moderatorIds.includes(user.id);
+}
 
 async function generateReport(season, stat) {
     stat = stat || 0;
