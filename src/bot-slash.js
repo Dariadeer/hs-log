@@ -1,5 +1,4 @@
 const { REST, Routes } = require('discord.js');
-const { destroy } = require('./bot');
 const { CLIENT, GUILD, TOKEN } = process.env;
 const commandsRaw = [
     {
