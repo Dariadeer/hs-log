@@ -204,7 +204,7 @@ client.on('interactionCreate', async interaction => {
                             }
                         } catch (err) {
                             console.error(err);
-                            await interaction.editReply('Failed to start monitoring the poll (' + err.mesage + ')');
+                            await interaction.editReply('Failed to start monitoring the poll (' + err.rawError.message + ')');
                         }
                         break;
                     case 'status':
