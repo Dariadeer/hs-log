@@ -195,7 +195,8 @@ client.on('interactionCreate', async interaction => {
                             } else {
                                 await interaction.editReply('Failed to start monitoring poll ' + pollId);
                             }
-                        } catch {
+                        } catch (err) {
+                            console.error(err);
                             await interaction.editReply('Failed to start monitoring the poll');
                         }
                         break;
@@ -219,7 +220,8 @@ client.on('interactionCreate', async interaction => {
                         try {
                             await db.resetArtPollData();
                             await interaction.editReply('From now on, no artifact poll is being monitored')
-                        } catch {
+                        } catch (err) {
+                            console.error(err);
                             await interaction.editReply('Failed to stop the monitoring')
                         }
                         break;
