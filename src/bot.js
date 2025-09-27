@@ -4,7 +4,7 @@ const utils = require('./utils.js');
 const images = require('./images.js');
 const fs = require('fs');
 const { CLIENT, GUILD, LB_CHANNEL, MODERATORS, MODERATOR_ROLES, EMOJI_IDS, ART_ROLE_ID, ART_POLL_DURATION } = process.env;
-const ART_POLL_CHECK_INTERVAL = 300000;
+const ART_POLL_CHECK_INTERVAL = 10000;
 const ART_POLL_DURATION_NUM = parseInt(ART_POLL_DURATION);
 
 const moderatorIds = MODERATORS.split(',').map(id => id.trim());
