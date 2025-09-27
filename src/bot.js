@@ -80,6 +80,7 @@ client.checkArtPoll = async () => {
 
 client.monitor = async () => {
     // Immediate check after start with every next one repeating every 5 minutes
+    console.log('Beginning monitoring...')
     client.checkArtPoll();
     setInterval(() => client.checkArtPoll(), ART_POLL_CHECK_INTERVAL);
 }
