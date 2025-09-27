@@ -54,6 +54,7 @@ client.updateScoreboard = async () => {
     await sendReport(files);
 }
 
+
 client.checkArtPoll = async () => {
     try {
         const [channelId, pollId] = await db.getArtPollData();
@@ -72,14 +73,16 @@ client.checkArtPoll = async () => {
             console.log(new Date().toLocaleString() + ' Check - Negative: Pass')
         }
     } catch (e) {
-        console.log(new Date().toLocaleString() + ' Error: (' + e.rawError.message + ')')
+        console.log(new Date().toLocaleString() + ' Error: (' + e + ')')
     }
     
 }
 
-// Immediate check after start with every next one repeating every 5 minutes
-client.checkArtPoll();
-setInterval(() => client.checkArtPoll(), ART_POLL_CHECK_INTERVAL);
+client.monitor = async () => {
+    // Immediate check after start with every next one repeating every 5 minutes
+    client.checkArtPoll();
+    setInterval(() => client.checkArtPoll(), ART_POLL_CHECK_INTERVAL);
+}
 
 async function processWebhookMessage(message) {
     if(message.author.id !== process.env.HOOK) return;

@@ -9,6 +9,7 @@ db.connect(async () => {
 
 bot.once('clientReady', async () => {
     console.log('Discord Bot Ready!');
+    bot.monitor();
 });
 
 bot.log = db.log;
