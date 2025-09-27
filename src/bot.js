@@ -55,20 +55,30 @@ client.updateScoreboard = async () => {
 }
 
 client.checkArtPoll = async () => {
-    const [channelId, pollId] = await db.getArtPollData();
+    try {
+        const [channelId, pollId] = await db.getArtPollData();
 
-    if(!channelId || !pollId) return;
-
-    const guild = await client.guilds.fetch(GUILD);
-    const channel = await guild.channels.fetch(channelId);
-    const poll = await channel.messages.fetch(pollId);
-
-    if(poll.poll.resultsFinalized) {
-        const sent = await channel.send(artPollMessage);
-        db.setArtPollData(channelId, sent.id);
+        if(!channelId || !pollId) return;
+    
+        const guild = await client.guilds.fetch(GUILD);
+        const channel = await guild.channels.fetch(channelId);
+        const poll = await channel.messages.fetch(pollId);
+    
+        if(poll.poll.resultsFinalized) {
+            const sent = await channel.send(artPollMessage);
+            db.setArtPollData(channelId, sent.id);
+            console.log(new Date().toLocaleString() + ' Check - Positive: Updating...')
+        } else {
+            console.log(new Date().toLocaleString() + ' Check - Negative: Pass')
+        }
+    } catch (e) {
+        console.log(new Date().toLocaleString() + ' Error: (' + e.rawError.message + ')')
     }
+    
 }
 
+// Immediate check after start with every next one repeating every 5 minutes
+client.checkArtPoll();
 setInterval(() => client.checkArtPoll(), ART_POLL_CHECK_INTERVAL);
 
 async function processWebhookMessage(message) {
