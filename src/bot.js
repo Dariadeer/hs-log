@@ -3,8 +3,8 @@ const db = require('./db.js');
 const utils = require('./utils.js');
 const images = require('./images.js');
 const fs = require('fs');
-const { CLIENT, GUILD, LB_CHANNEL, MODERATORS, MODERATOR_ROLES, EMOJI_IDS, ART_ROLE_ID, ART_POLL_DURATION } = process.env;
-const ART_POLL_CHECK_INTERVAL = 10000;
+const { WEBHOOK_ID, BOT_ID, GUILD_ID, LB_CHANNEL_ID, MODERATORS, EMOJI_IDS, ART_ROLE_ID, ART_POLL_DURATION, ART_POLL_CHECK_INTERVAL } = process.env;
+const ART_POLL_CHECK_INTERVAL_NUM = parseInt(ART_POLL_CHECK_INTERVAL);
 const ART_POLL_DURATION_NUM = parseInt(ART_POLL_DURATION);
 
 const moderatorIds = MODERATORS.split(',').map(id => id.trim());
@@ -38,7 +38,7 @@ client.on('messageCreate', async message => {
 });
 
 client.createPoll = async (channelId) => {
-    const guild = await client.guilds.fetch(GUILD);
+    const guild = await client.guilds.fetch(GUILD_ID);
     const channel = await guild.channels.fetch(channelId);
     channel.send(artPollMessage);
 }
@@ -61,7 +61,7 @@ client.checkArtPoll = async () => {
 
         if(!channelId || !pollId) return;
     
-        const guild = await client.guilds.fetch(GUILD);
+        const guild = await client.guilds.fetch(GUILD_ID);
         const channel = await guild.channels.fetch(channelId);
         const poll = await channel.messages.fetch(pollId);
     
@@ -82,11 +82,11 @@ client.monitor = async () => {
     // Immediate check after start with every next one repeating every 5 minutes
     console.log('Beginning monitoring...')
     client.checkArtPoll();
-    setInterval(() => client.checkArtPoll(), ART_POLL_CHECK_INTERVAL);
+    setInterval(() => client.checkArtPoll(), ART_POLL_CHECK_INTERVAL_NUM);
 }
 
 async function processWebhookMessage(message) {
-    if(message.author.id !== process.env.HOOK) return;
+    if(message.author.id !== WEBHOOK_ID) return;
     try {
         for(let file of message.attachments.entries()) {
             if(!client.log) throw new Error('The data logging function isn\'t set');
@@ -199,18 +199,13 @@ client.on('interactionCreate', async interaction => {
                         try {
                             const channelId = interaction.options.get('channel_id').value;
                             const pollId = interaction.options.get('poll_id').value;
-                            console.log(channelId, pollId);
-                            const guild = await client.guilds.fetch(GUILD);
-                            console.log(GUILD);
+                            const guild = await client.guilds.fetch(GUILD_ID);
                             const channel = await guild.channels.fetch(channelId);
-                            console.log(channel);
                             if(channel.isThread()) {
                                 await channel.join();
                             }
                             const poll = await channel.messages.fetch(pollId);
-                            console.log(poll);
-                            console.log(poll.poll, poll.interaction, poll.author);
-                            if(poll.poll && poll.author.id === CLIENT) {
+                            if(poll.poll && poll.author.id === BOT_ID) {
                                 await db.setArtPollData(channel.id, poll.id);
                                 await interaction.editReply('Success! Now monitoring poll ' + pollId);
                             } else {
@@ -225,7 +220,7 @@ client.on('interactionCreate', async interaction => {
                         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
                         const [channelId, pollId] = await db.getArtPollData();
                         if(channelId && pollId) {
-                            await interaction.editReply(`Monitoring https://discord.com/channels/${GUILD}/${channelId}/${pollId}`);
+                            await interaction.editReply(`Monitoring https://discord.com/channels/${GUILD_ID}/${channelId}/${pollId}`);
                         } else {
                             await interaction.editReply(`No artifact poll is being monitored`);
                         }
@@ -276,11 +271,11 @@ async function generateReport(season, stat) {
 }
 
 async function sendReport(files) {
-    const guild = await client.guilds.fetch(GUILD);
-    const channel = await guild.channels.fetch(LB_CHANNEL);
+    const guild = await client.guilds.fetch(GUILD_ID);
+    const channel = await guild.channels.fetch(LB_CHANNEL_ID);
     const messages = await channel.messages.fetch({ limit: 20 });
     for(let [id, m] of messages.entries()) {
-        if (m.author.id === process.env.CLIENT) {
+        if (m.author.id === process.env.BOT_ID) {
             await m.delete();
         }
     }
