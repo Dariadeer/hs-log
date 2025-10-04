@@ -55,7 +55,7 @@ client.updateScoreboard = async () => {
 }
 
 
-client.checkArtPoll = async () => {
+async function checkArtPoll () {
     try {
         const [channelId, pollId] = await db.getArtPollData();
 
@@ -67,7 +67,8 @@ client.checkArtPoll = async () => {
     
         if(poll.poll.resultsFinalized) {
             const sent = await channel.send(artPollMessage);
-            db.setArtPollData(channelId, sent.id);
+            await poll.delete();
+            await db.setArtPollData(channelId, sent.id);
             console.log(new Date().toLocaleString() + ' Check - Positive: Updating...')
         } else {
             console.log(new Date().toLocaleString() + ' Check - Negative: Pass')
@@ -81,8 +82,8 @@ client.checkArtPoll = async () => {
 client.monitor = async () => {
     // Immediate check after start with every next one repeating every 5 minutes
     console.log('Beginning monitoring...')
-    client.checkArtPoll();
-    setInterval(() => client.checkArtPoll(), ART_POLL_CHECK_INTERVAL_NUM);
+    checkArtPoll();
+    setInterval(() => checkArtPoll(), ART_POLL_CHECK_INTERVAL_NUM);
 }
 
 async function processWebhookMessage(message) {
