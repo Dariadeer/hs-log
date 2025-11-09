@@ -49,7 +49,7 @@ client.getMessageInfo = async (channelId, messageId) => {
 }
 
 client.updateScoreboard = async () => {
-    const files = await generateReport(utils.getLastEventNumber(Date.now()));
+    const files = await generateReport(41, 0, true);
     if(!files) return;
     await sendReport(files);
 }
@@ -100,7 +100,7 @@ async function processWebhookMessage(message) {
                 }
                 message.react('✅');
                 if(!utils.isRSEvent(Date.now()) || !res || res.status !== 2) return;
-                const files = await generateReport(utils.getLastEventNumber(Date.now()));
+                const files = await generateReport(utils.getLastEventNumber(Date.now()), 0, true);
                 if(!files) return;
                 await sendReport(files);
             });
@@ -119,7 +119,7 @@ client.on('interactionCreate', async interaction => {
                 await interaction.deferReply({ flags: MessageFlags.Ephemeral });
                 const season = interaction.options.get('season') ? interaction.options.get('season').value : utils.getLastEventNumber(Date.now());
                 const stat = interaction.options.get('stat') ? interaction.options.get('stat').value : 0;
-                const files = await generateReport(season, stat);
+                const files = await generateReport(season, stat, false);
                 if(!files) return await interaction.editReply({
                     content: 'The data for this season was not recorded',
                 });
@@ -257,16 +257,23 @@ function validateUser(user) {
     return moderatorIds.includes(user.id);
 }
 
-async function generateReport(season, stat) {
+async function generateReport(season, stat, header) {
     stat = stat || 0;
     const players = await db.report(season, stat);
+    const corporationScore = await db.totalScore(season);
     if(players.length === 0) return null;
     const files = [];
+    if(header) {
+        files.push({
+            name: 'header.png',
+            attachment:  images.generateScoreHeaderImage(corporationScore, season)
+        });
+    }
     for(let i = 0; i < players.length; i+= 10) {
         files.push({
             name: 'report' + i + '.png',
-            attachment: await images.generateScoreboardImage(players, season, i, 10, players[0][stats[stat].name], stat)
-        })
+            attachment: images.generateScoreboardImage(players, season, i, 10, players[0][stats[stat].name], stat)
+        });
     }
     return files;
 }

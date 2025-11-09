@@ -1,21 +1,106 @@
 const { createCanvas, Image } = require('canvas');
 const fs = require('fs');
 const path = require('path');
+const utils = require('./utils')
 
 const stats = require('./reports').stats;
+
+const goal = 1500000
 
 const rsIcon = new Image();
 rsIcon.src = fs.readFileSync(path.resolve(__dirname, '../resources/images/red-star.png'));
 
 // Cosmic background (dark space with subtle gradient)
-const bgGradient = '#0a0e24'; //ctx.createLinearGradient(0, 0, canvasWidth, canvasHeight);
-// bgGradient.addColorStop(0, '#0a0e24');
-// bgGradient.addColorStop(1, '#1a103d');
+const bgGradient = '#0a0e24';
 
-const tiers = ['S', 'A', 'B', 'C', 'D', 'E'];
-const colors = ['#FF0000', '#FFA600', '#FFFF00', '#00FFE1', '#9000FF', '#FF00F7']
+function getGoalValue() {
+    return goal;
+}
 
-async function generateCosmicScoreboard(players, eventNumber, offset, limit, maxValue, stat) {
+function generateScoreHeaderImage(score, eventNumber) {
+    const { createCanvas } = require('canvas');
+    const canvasWidth = 900;
+    const canvasHeight = 220;
+
+    const endTime = utils.getEventTimeframe(eventNumber)[1];
+
+    const canvas = createCanvas(canvasWidth, canvasHeight);
+    const ctx = canvas.getContext('2d');
+
+    // === Background ===
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+    gradient.addColorStop(0, '#0a0e24');
+    gradient.addColorStop(1, '#1a0f2a');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    drawStarfield(ctx, canvasWidth, canvasHeight);
+
+    // === Title Text ===
+    ctx.shadowColor = '#ff2020';
+    ctx.shadowBlur = 25;
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 42px "Arial", sans-serif';
+    ctx.fillText(`RED STAR EVENT #${eventNumber}`, canvasWidth / 2, 65);
+    ctx.shadowBlur = 0;
+
+    // === Progress Bar ===
+    const barX = 100;
+    const barY = 110;
+    const barWidth = canvasWidth - barX * 2;
+    const barHeight = 26;
+    const progress = Math.min(score / getGoalValue(), 1);
+
+    // Bar background
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.beginPath();
+    ctx.roundRect(barX, barY, barWidth, barHeight, 10);
+    ctx.fill();
+
+    // Bar fill color (dynamic)
+    const progGrad = ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
+    if (progress < 0.5) {
+        progGrad.addColorStop(0, '#ff3333');
+        progGrad.addColorStop(1, '#ff7700');
+    } else if (progress < 0.85) {
+        progGrad.addColorStop(0, '#ff7700');
+        progGrad.addColorStop(1, '#ffd200');
+    } else {
+        progGrad.addColorStop(0, '#00ff99');
+        progGrad.addColorStop(1, '#00ffaa');
+    }
+
+    ctx.fillStyle = progGrad;
+    ctx.beginPath();
+    ctx.roundRect(barX, barY, barWidth * progress, barHeight, 10);
+    ctx.fill();
+
+    // Score text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px "Arial", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${score.toLocaleString()} / ${getGoalValue().toLocaleString()} (${(progress * 100).toFixed(1)}%)`, canvasWidth / 2, barY + barHeight + 25);
+
+    // === Time Remaining ===
+    const now = new Date();
+    const remaining = Math.max(0, endTime - now);
+    const hrs = Math.floor(remaining / 3600000);
+    const mins = Math.floor((remaining % 3600000) / 60000);
+
+    let timeText = `ENDS IN ${hrs}H ${mins}M`;
+    let timeColor = '#ffffff';
+    if (remaining < 6 * 3600000) timeColor = '#ff4444';
+    else if (remaining < 24 * 3600000) timeColor = '#ff9900';
+
+    ctx.fillStyle = timeColor;
+    ctx.font = 'bold 22px "Arial", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(timeText, canvasWidth / 2, canvasHeight - 20);
+
+    return canvas.toBuffer('image/png');
+}
+
+function generateCosmicScoreboard(players, eventNumber, offset, limit, maxValue, stat) {
     // Canvas setup with wider format for better layout
 
     const canvasWidth = 900;
@@ -161,5 +246,6 @@ function getTier(score, maxValue) {
 }
 
 module.exports = {
-    generateScoreboardImage: generateCosmicScoreboard
+    generateScoreboardImage: generateCosmicScoreboard,
+    generateScoreHeaderImage
 };

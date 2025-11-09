@@ -87,6 +87,23 @@ function formatDate(dateString) {
     return dateString.slice(0, 19).replace('T', ' ');
 }
 
+async function totalScore(season) {
+    await pool.query('use hs_log');
+    const [start, end] = utils.getEventTimeframe(season);
+    const formattedStart = new Date(start).toISOString();
+    const formattedEnd = new Date(end).toISOString();
+
+    const results = await pool.query(`
+        SELECT 
+          SUM(s.rs_points) as sum
+        FROM 
+          stars s
+        WHERE 
+          s.rs_start > ? AND s.rs_end < ?
+  `, [formattedStart, formattedEnd]);
+    return results[0].sum;
+}
+
 async function report(season, stat) {
 
     await pool.query('use hs_log');
@@ -176,5 +193,6 @@ module.exports = {
     connect,
     getArtPollData,
     setArtPollData,
-    resetArtPollData
+    resetArtPollData,
+    totalScore
 };
