@@ -49,7 +49,7 @@ client.getMessageInfo = async (channelId, messageId) => {
 }
 
 client.updateScoreboard = async () => {
-    const files = await generateReport(41, 0, true);
+    const files = await generateReport(utils.getLastEventNumber(), 0, true);
     if(!files) return;
     await sendReport(files);
 }
