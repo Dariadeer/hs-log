@@ -1,5 +1,5 @@
 const { REST, Routes } = require('discord.js');
-const { CLIENT, GUILD, TOKEN } = process.env;
+const { BOT_ID, GUILD_ID, BOT_TOKEN } = process.env;
 const commandsRaw = [
     {
         aliases: ['help'],
@@ -111,7 +111,8 @@ for(let cmd of commandsRaw) {
     }
 }
 
-const rest = new REST().setToken(TOKEN);
+const rest = new REST().setToken(BOT_TOKEN);
+console.log(`Token set: ${BOT_TOKEN}`)
 
 function createAlias(name, command) {
     return Object.assign({ name }, command);
@@ -123,7 +124,7 @@ module.exports = {
             console.log('Started refreshing application (/) commands.');
 
             await rest.put(
-                Routes.applicationGuildCommands(CLIENT, GUILD),
+                Routes.applicationGuildCommands(BOT_ID, GUILD_ID),
                 { body: commands }
             );
 
