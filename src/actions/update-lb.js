@@ -12,5 +12,5 @@ db.connect(async () => {
 bot.once('ready', async () => {
     console.log('Discord Bot Ready!');
     await bot.updateScoreboard();
-    console.log('Scoreboard updated!')
+    console.log('Scoreboard updated!');
 });

@@ -48,7 +48,7 @@ function generateScoreHeaderImage(score, eventNumber) {
     const barX = 100;
     const barY = 110;
     const barWidth = canvasWidth - barX * 2;
-    const barHeight = 26;
+    const barHeight = 10;
     const progress = Math.min(score / getGoalValue(), 1);
 
     // Bar background
@@ -79,7 +79,7 @@ function generateScoreHeaderImage(score, eventNumber) {
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 20px "Arial", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`${score.toLocaleString()} / ${getGoalValue().toLocaleString()} (${(progress * 100).toFixed(1)}%)`, canvasWidth / 2, barY + barHeight + 25);
+    ctx.fillText(`${parseInt(score).toLocaleString()} / ${getGoalValue().toLocaleString()} (${(progress * 100).toFixed(1)}%)`, canvasWidth / 2, barY + barHeight + 25);
 
     // === Time Remaining ===
     const now = new Date();

@@ -15,8 +15,10 @@ const pool = mysql.createPool({
     user: DB_USER,
     password: DB_PASSWORD,
     port: DB_PORT,
+    database: 'hs_log',
     keepAliveInitialDelay: 10000,
     enableKeepAlive: true,
+    multipleStatements: true
 });
 
 // we do this to use async await with mysql (see: https://stackoverflow.com/questions/50093144/using-async-await-with-a-mysql-database)
@@ -25,16 +27,18 @@ pool.query = util.promisify(pool.query).bind(pool);
 module.exports = pool;
 
 async function setup() {
-    const queries = fs.readFileSync(DB_SETUP_PATH).toString().split(';');
-    for(let query of queries) {
-        try {
-            await pool.query(query);
-        } catch(error) {
-            if(error.code !== 'ER_EMPTY_QUERY') {
-                throw error;
-            }
-        }
-    }
+    // const queries = fs.readFileSync(DB_SETUP_PATH).toString().split(';');
+    // for(let query of queries) {
+    //     try {
+    //         await pool.query(query);
+    //     } catch(error) {
+    //         if(error.code !== 'ER_EMPTY_QUERY') {
+    //             throw error;
+    //         }
+    //     }
+    // }
+    const queries = fs.readFileSync(DB_SETUP_PATH).toString();
+    const results = await pool.query(queries);
 }
 
 async function log(data, callback) {
@@ -68,6 +72,53 @@ async function log(data, callback) {
                 return callback({
                     status: 2
                 });
+            case 'WhiteStarStarted':
+                // Insert corporations
+                const corp = data.Corporation, opp = data.Opponent;
+                await pool.query(
+                    `INSERT IGNORE INTO hs_log.corporations (cid, name, symbol, border, color_1, color_2) VALUES ?`,
+                    [[
+                        [corp.CorporationID, corp.CorporationName, corp.SymbolIdx, corp.BorderIdx, corp.ColorIdx, corp.Color2Idx],
+                        [opp.CorporationID, opp.CorporationName, opp.SymbolIdx, opp.BorderIdx, opp.ColorIdx, opp.Color2Idx]
+                    ]]
+                );
+                // Insert the star
+                await pool.query(
+                    `INSERT INTO hs_log.white_stars (ssid, ws_start, our_id, opponent_id, slot, underdog) VALUES (?, ?, ?, ?, ?, ?)`,
+                    [data.WhiteStarID, formatDate(data.Timestamp), corp.CorporationID, opp.CorporationID, data.Slot, data.IsUnderdog]
+                );
+                // Insert players
+                await pool.query(
+                    `INSERT IGNORE INTO hs_log.players (pid, name) VALUES ?`,
+                    [[...data.OurParticipants, ...data.OpponentParticipants].map(player => [player.PlayerID, player.PlayerName])]
+                );
+                // Insert ally participation
+                let count = 1 + data.Slot * 20;
+                await pool.query(
+                    `INSERT INTO hs_log.ws_participation (pid, ssid, opponent, \`index\`) VALUES ?`,
+                    [data.OurParticipants.map(player => [player.PlayerID, data.WhiteStarID, false, count++])]
+                );
+                
+                // Insert opponent participation
+                await pool.query(
+                    `INSERT INTO hs_log.ws_participation (pid, ssid, opponent, \`index\`) VALUES ?`,
+                    [data.OpponentParticipants.map(player => [player.PlayerID, data.WhiteStarID, true, count++])]
+                );
+                return callback({
+                    status: 3
+                });
+            case 'WhiteStarEnded':
+                await pool.query(
+                    'UPDATE hs_log.white_stars SET xp_gained = ?, our_score = ?, opponent_score = ? WHERE ssid = ?',
+                    [data.XPGained, data.OurScore, data.OpponentScore, data.WhiteStarID]
+                );
+                return callback({
+                    status: 4
+                })
+            default:
+                console.log("Not recognized: ", data.EventType);
+                return;
+
         }
     } catch (error) {
         return callback({
@@ -78,17 +129,7 @@ async function log(data, callback) {
 
 }
 
-/**
- *
- * @param dateString
- * @returns String
- */
-function formatDate(dateString) {
-    return dateString.slice(0, 19).replace('T', ' ');
-}
-
 async function totalScore(season) {
-    await pool.query('use hs_log');
     const [start, end] = utils.getEventTimeframe(season);
     const formattedStart = new Date(start).toISOString();
     const formattedEnd = new Date(end).toISOString();
@@ -105,8 +146,6 @@ async function totalScore(season) {
 }
 
 async function report(season, stat) {
-
-    await pool.query('use hs_log');
     const [start, end] = utils.getEventTimeframe(season);
     const formattedStart = new Date(start).toISOString();
     const formattedEnd = new Date(end).toISOString();
@@ -145,7 +184,6 @@ async function connect(callback) {
 }
 
 async function checkArtPollId() {
-    await pool.query('use hs_log');
     const message = await pool.query(`SELECT value FROM vars WHERE \`key\` = 'ArtPollMessageId'`);
     if(message.length === 0) {
         await pool.query(`
@@ -161,7 +199,6 @@ async function checkArtPollId() {
 }
 
 async function setArtPollData(channelId, pollId) {
-    await pool.query('use hs_log');
     await pool.query(`
         UPDATE vars SET \`value\` = '${pollId}' WHERE \`key\` = 'ArtPollMessageId'
     `);
@@ -171,7 +208,6 @@ async function setArtPollData(channelId, pollId) {
 }
 
 async function resetArtPollData() {
-    await pool.query('use hs_log');
     await pool.query(`
         UPDATE vars SET \`value\` = NULL WHERE \`key\` = 'ArtPollMessageId'
     `);
@@ -180,10 +216,116 @@ async function resetArtPollData() {
     `);
 }
 
-async function getArtPollData () {
-    await pool.query('use hs_log');
+async function getArtPollData() {
     const result = await pool.query(`SELECT * FROM vars WHERE \`key\`='ArtPollMessageId' OR \`key\` = 'ArtPollChannelId'`);
     return [result.find(e => e.key === 'ArtPollChannelId').value, result.find(e => e.key === 'ArtPollMessageId').value];
+}
+
+async function getWSInfo() {
+    const results = await pool.query(`
+
+        WITH active_ws AS (
+            SELECT *
+            FROM white_stars
+            WHERE TIME_TO_SEC(TIMEDIFF(NOW(), ws_start)) < 432000
+        )
+
+        SELECT *, ADDTIME(ws_start, '5 00:00:00') AS ends_at
+        FROM active_ws;
+
+
+        WITH active_ws AS (
+            SELECT *
+            FROM white_stars
+            WHERE TIME_TO_SEC(TIMEDIFF(NOW(), ws_start)) < 432000
+        )
+
+        SELECT c.*
+        FROM corporations c
+        JOIN active_ws aws ON c.cid = aws.our_id OR c.cid = aws.opponent_id;
+        
+
+        WITH active_ws AS (
+            SELECT *
+            FROM white_stars
+            WHERE TIME_TO_SEC(TIMEDIFF(NOW(), ws_start)) < 432000
+        )
+
+        SELECT wsp.index, wsp.opponent, p.name, aws.slot
+        FROM ws_participation wsp
+        JOIN active_ws aws ON aws.ssid = wsp.ssid
+        JOIN players p ON p.pid = wsp.pid;
+
+        WITH active_ws AS (
+            SELECT *
+            FROM white_stars
+            WHERE TIME_TO_SEC(TIMEDIFF(NOW(), ws_start)) < 432000
+        )
+        
+        SELECT wsr.ship_type, wsr.respawns_at, p.name AS pname, aws.slot, wsp.opponent
+        FROM ws_respawns wsr
+        JOIN ws_participation wsp ON wsr.pid = wsp.pid
+        JOIN active_ws aws ON wsp.ssid = aws.ssid
+        JOIN players p ON p.pid = wsp.pid
+        WHERE wsr.respawns_at > NOW();
+
+    `);
+
+    const [ stars, corps, players, respawns ] = results;
+
+    const formatted = {};
+
+    for(let i = 0; i < 2; i++) {
+        const star = stars.find(star => star.slot === i);
+        if(star) {
+            formatted[i] = {
+                endsAt: star.ends_at / 1000,
+                us: {
+                    corp: corps.find(corp => corp.cid === star.our_id),
+                    players: players.filter(p => p.slot === star.slot && !p.opponent).sort((a, b) => a.index - b.index),
+                    down: respawns.filter(r => r.slot === star.slot && !r.opponent)
+                },
+                them: {
+                    corp: corps.find(corp => corp.cid === star.opponent_id),
+                    players: players.filter(p => p.slot === star.slot && p.opponent).sort((a, b) => a.index - b.index),
+                    down: respawns.filter(r => r.slot === star.slot && r.opponent)
+                }
+            }
+        }
+    }
+
+    return formatted;
+}
+
+async function getWSFromPlayerIndex(index) {
+    return (await pool.query(`
+        SELECT *
+        FROM white_stars ws
+        JOIN ws_participation wsp ON ws.ssid = wsp.ssid
+        JOIN players p ON p.pid = wsp.pid
+        WHERE wsp.index = ?;
+    `, [index]))[0];
+}
+
+async function recordWSElimination(playerId, respawnsAt, shipType) {
+    await pool.query(`INSERT INTO ws_respawns (pid, respawns_at, ship_type) VALUES (?, ?, ?)`,
+        [playerId, formatDate(respawnsAt.toISOString()), shipType]
+    );
+}
+
+async function clearWSElimination(index, shipType) {
+    await pool.query(`DELETE wsr FROM ws_respawns wsr JOIN ws_participation wsp ON wsr.pid = wsp.pid WHERE wsp.\`index\` = ? AND wsr.ship_type = ?`,
+        [index, shipType]
+    );
+}
+
+/**
+ *
+ * @param dateString
+ * @returns String
+ */
+function formatDate(dateString) {
+    return dateString.slice(0, 19).replace('T', ' ');
 }
 
 module.exports = {
@@ -194,5 +336,9 @@ module.exports = {
     getArtPollData,
     setArtPollData,
     resetArtPollData,
-    totalScore
+    totalScore,
+    getWSInfo,
+    getWSFromPlayerIndex,
+    recordWSElimination,
+    clearWSElimination
 };

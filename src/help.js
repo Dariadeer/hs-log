@@ -3,7 +3,7 @@ const { createCanvas } = require('canvas');
 const fs = require('fs');
 const path = require('path');
 
-const width = 800, height = 1100;
+const width = 800, height = 2000;
 
 function generateImage() {
     const canvas = createCanvas(width, height);
@@ -26,10 +26,13 @@ function generateImage() {
     const paramNameOffset = 200;
     const descriptionOffset = 350;
 
-    for(let command of commandsRaw) {
+    for(let i = 0; i < commandsRaw.length; i++) {
+        let command = commandsRaw[i];
 
         let paramOffset = 105;
         let paramId = 1;
+
+        console.log(command);
 
         if(!command.prefix) {
             const name = command.aliases[0];
@@ -67,7 +70,18 @@ function generateImage() {
 
             if(param.type === 1) {
                 param.aliases = command.aliases.map(alias => alias + ' ' + param.name);
-                commandsRaw.push(param);
+                param.type = null;
+                commandsRaw.splice(i + 1, 0, param);
+                // console.log(param);
+                continue;
+            }
+
+            if(param.type === 2) {
+                for(let opt of param.options) {
+                    opt.aliases = command.aliases.map(alias => alias + ' ' + param.name + ' ' + opt.name);
+                    param.type = null;  
+                    commandsRaw.splice(i + 1, 0, opt);
+                }
                 continue;
             }
 
@@ -96,8 +110,6 @@ function generateImage() {
         }
 
         y += paramOffset - 40;
-
-
     }
 
     fs.writeFileSync(path.resolve(__dirname, '../resources/images/help.png'), canvas.toBuffer('image/png'));

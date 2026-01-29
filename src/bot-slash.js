@@ -76,13 +76,13 @@ const commandsRaw = [
                 options: [
                     {
                         name: 'channel_id',
-                        description: 'Id of the poll channel',
+                        description: 'ID of the poll channel',
                         required: true,
                         type: 3
                     },
                     {
                         name: 'poll_id',
-                        description: 'Id of the poll message',
+                        description: 'ID of the poll message',
                         required: true,
                         type: 3
                     }
@@ -98,6 +98,97 @@ const commandsRaw = [
                 type: 1,
                 name: 'status',
                 description: 'Reveals the poll that\'s being monitored'
+            }
+        ]
+    },
+    {
+        aliases: ['ws'],
+        description: 'Group of /ws commands',
+        prefix: true,
+        options: [
+            {
+                type: 1,
+                name: 'info',
+                description: 'Displays the current WS player lineup',
+            },
+            {
+                type: 2,
+                name: 'elimination',
+                description: 'Group of /ws elimination commands',
+                options: [
+                    {
+                        type: 1,
+                        name: 'record',
+                        description: 'Sets a respawn timer for the player with the specified lineup index',
+                        options: [
+                            {
+                                name: 'index',
+                                description: 'Lineup index of the eliminated player',
+                                required: true,
+                                type: 4
+                            },
+                            {
+                                name: 'time',
+                                description: 'Time of elimination in day/hour:minute:second format (time left before supernova)',
+                                required: true,
+                                type: 3
+                            },
+                            {
+                                name: 'ship',
+                                description: 'Ship type of the elimination',
+                                required: true,
+                                type: 3,
+                                choices: [
+                                    {
+                                        name: 'battleship',
+                                        value: 'battleship'
+                                    },
+                                    {
+                                        name: 'transport',
+                                        value: 'transport'
+                                    },
+                                    {
+                                        name: 'miner',
+                                        value: 'miner'
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        type: 1,
+                        name: 'clear',
+                        description: 'Removes a mistakenly added respawn timer',
+                        options: [
+                            {
+                                name: 'index',
+                                description: 'Lineup index of the eliminated player',
+                                required: true,
+                                type: 4
+                            },
+                            {
+                                name: 'ship',
+                                description: 'Ship type of the elimination',
+                                required: true,
+                                type: 3,
+                                choices: [
+                                    {
+                                        name: 'battleship',
+                                        value: 'battleship'
+                                    },
+                                    {
+                                        name: 'transport',
+                                        value: 'transport'
+                                    },
+                                    {
+                                        name: 'miner',
+                                        value: 'miner'
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
             }
         ]
     }

@@ -32,10 +32,15 @@ function isRSEvent(time) {
     // return true;
 }
 
+function capitalizeFirstLetter(str) {
+    return str.slice(0, 1).toUpperCase() + str.slice(1);
+}
+
 module.exports = {
     getEventTimeframe,
     getLastEventNumber,
-    isRSEvent
+    isRSEvent,
+    capitalizeFirstLetter
 }
 
 console.log(getEventTimeframe(41));
