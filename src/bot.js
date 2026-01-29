@@ -142,6 +142,12 @@ async function processWebhookMessage(message) {
 
 client.on('interactionCreate', async interaction => {
     try {
+        if(!interaction.channel.name.includes('bot')) {
+            return await interaction.reply({
+                content: 'Please use a bot channel to communicate with the bot.',
+                flags: [MessageFlags.Ephemeral]
+            });
+        }
         const group = interaction.options.getSubcommandGroup();
         const sub = interaction.options.getSubcommand();
         const userRoleIds = [...interaction.member.roles.cache.keys()];
@@ -290,9 +296,15 @@ client.on('interactionCreate', async interaction => {
                         if(stars[0]) embeds.push(generateWSInfoEmbed(stars[0], 0));
                         if(stars[1]) embeds.push(generateWSInfoEmbed(stars[1], 1));
 
-                        await interaction.editReply({
-                            embeds: embeds
-                        });
+                        if(embeds.length === 0) {
+                            await interaction.editReply({
+                                content: 'There are no ongoing white stars at the moment...'
+                            });
+                        } else {
+                            await interaction.editReply({
+                                embeds: embeds
+                            });
+                        }
                         break;
                     case 'elimination record':
                         await interaction.deferReply();
