@@ -148,8 +148,6 @@ client.on('interactionCreate', async interaction => {
                 flags: [MessageFlags.Ephemeral]
             });
         }
-        const group = interaction.options.getSubcommandGroup();
-        const sub = interaction.options.getSubcommand();
         const userRoleIds = [...interaction.member.roles.cache.keys()];
         switch (interaction.commandName) {
             case 'lb':
@@ -286,6 +284,8 @@ client.on('interactionCreate', async interaction => {
             case 'ws':
                 let index;
                 let shipType;
+                const group = interaction.options.getSubcommandGroup();
+                const sub = interaction.options.getSubcommand();
                 if(group === 'elimination' &&  !validateRoles(userRoleIds, wsRoleIds)) return await interaction.reply('You can\'t use this command unless you are a part of one of our WS teams');
                 switch ((group ? (group + ' ') : '') + sub) {
                     case 'info':

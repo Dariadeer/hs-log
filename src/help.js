@@ -103,7 +103,13 @@ function generateImage() {
             ctx.fillText(param.name, x + paramNameOffset, y + paramOffset);
 
             ctx.font = '20px "Roboto", sans-serif';
-            ctx.fillText(param.description, x + descriptionOffset, y + paramOffset);
+            const descriptionRows2 = breakIntoLines(param.description, 450, ctx);
+            let rowId = 0;
+            for(let row of descriptionRows2) {
+                ctx.fillText(row, x + descriptionOffset, y + paramOffset);
+                rowId++;
+                paramOffset += 25;
+            }
 
             paramOffset += 50;
             paramId++;
