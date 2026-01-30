@@ -325,9 +325,10 @@ client.on('interactionCreate', async interaction => {
                         const ws = await db.getWSFromPlayerIndex(index);
                         if(!ws) return await declareInvalidInputs(interaction, 'index');
 
-                        const diedAt = new Date(new Date(ws.ws_start).getTime() + WS_DURATION_MS - ms);
+                        // const diedAt = new Date(new Date(ws.ws_start).getTime() + WS_DURATION_MS - ms);
                         const respawnsAt = new Date(new Date(ws.ws_start).getTime() + WS_DURATION_MS - ms + SHIPS[shipType].respawn);
-                        if(diedAt.getTime() > Date.now()) return await declareInvalidInputs(interaction, 'time');
+                        // To allow setting respawn timers in the future, if death is apparent
+                        // if(diedAt.getTime() > Date.now()) return await declareInvalidInputs(interaction, 'time');
                         await db.recordWSElimination(ws.pid, respawnsAt, shipType);
                         await interaction.editReply({
                             embeds: [{
