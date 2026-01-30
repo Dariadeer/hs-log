@@ -127,7 +127,7 @@ async function processWebhookMessage(message) {
                     return;
                 }
                 message.react('✅');
-                if(!utils.isRSEvent(Date.now()) && res.status === 2) {
+                if(utils.isRSEvent(Date.now()) && res.status === 2) {
                     const files = await generateReport(utils.getLastEventNumber(Date.now()), 0, true);
                     if(!files) return;
                     await sendReport(files);
