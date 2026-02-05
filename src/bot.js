@@ -312,6 +312,7 @@ client.on('interactionCreate', async interaction => {
                         shipType = interaction.options.get('ship').value;
                         const timeStr = interaction.options.get('time').value;
                         const time = TIME_REGEX.exec(timeStr);
+                        console.log(time, timeStr);
                         if(time == null) return await declareInvalidInputs(interaction, 'time');
 
                         const day = parseInt(time.groups.day);
@@ -320,6 +321,7 @@ client.on('interactionCreate', async interaction => {
                         const second = parseInt(time.groups.second);
 
                         const ms = 1000 * (60 * (minute + 60 * (hour + 24 * day)) + second);
+                        console.log(day, hour, minute, second, ms);
                         if(ms > WS_DURATION_MS) return await declareInvalidInputs(interaction, 'time');
 
                         const ws = await db.getWSFromPlayerIndex(index);
