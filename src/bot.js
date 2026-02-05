@@ -97,9 +97,9 @@ async function checkArtPoll () {
             const sent = await channel.send(artPollMessage);
             await poll.delete();
             await db.setArtPollData(channelId, sent.id);
-            console.log(new Date().toLocaleString() + ' Check - Positive: Updating...')
+            // console.log(new Date().toLocaleString() + ' Check - Positive: Updating...')
         } else {
-            console.log(new Date().toLocaleString() + ' Check - Negative: Pass')
+            // console.log(new Date().toLocaleString() + ' Check - Negative: Pass')
         }
     } catch (e) {
         console.log(new Date().toLocaleString() + ' Error: (' + e + ')')
