@@ -299,8 +299,13 @@ async function getWSInfo() {
 
 async function getWSFromPlayerIndex(index) {
     return (await pool.query(`
+        WITH active_ws AS (
+            SELECT *
+            FROM white_stars
+            WHERE TIME_TO_SEC(TIMEDIFF(NOW(), ws_start)) < 432000
+        )
         SELECT *
-        FROM white_stars ws
+        FROM active_ws ws
         JOIN ws_participation wsp ON ws.ssid = wsp.ssid
         JOIN players p ON p.pid = wsp.pid
         WHERE wsp.index = ?;
