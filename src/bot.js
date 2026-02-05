@@ -286,7 +286,7 @@ client.on('interactionCreate', async interaction => {
                 let shipType;
                 const group = interaction.options.getSubcommandGroup();
                 const sub = interaction.options.getSubcommand();
-                if(group === 'elimination' &&  !validateRoles(userRoleIds, wsRoleIds)) return await interaction.reply('You can\'t use this command unless you are a part of one of our WS teams');
+                if(group === 'elimination' &&  !validateRoles(userRoleIds, wsRoleIds) && !validateUser(interaction.user)) return await interaction.reply('You can\'t use this command unless you are a part of one of our WS teams');
                 switch ((group ? (group + ' ') : '') + sub) {
                     case 'info':
                         await interaction.deferReply();
