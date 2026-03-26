@@ -6,7 +6,7 @@
     "test": "node test/test.js",
     "start": "node main.js",
     "setup": "node slash-register.js",
-    "refresh": "node src/actions/update-lb.js",
+    "refresh": "node src/actions/refresh-lb.js",
     "catchup": "node src/actions/catchup-ws.js"
   },
   "keywords": [],
