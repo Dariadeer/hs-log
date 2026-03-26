@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, DiscordAPIError, EmbedBuilder, EmbedType, AttachmentBuilder, PollLayoutType, MessageFlags} = require('discord.js');
+const { Client, GatewayIntentBits, DiscordAPIError, EmbedBuilder, EmbedType, AttachmentBuilder, PollLayoutType, MessageFlags } = require('discord.js');
 const db = require('./db.js');
 const utils = require('./utils.js');
 const images = require('./images.js');
@@ -25,13 +25,13 @@ const SHIPS = {
         emoji: shipEmojiIds[0]
     },
     transport: {
-        respawn: 24 * 60 * 60 * 1000,
+        respawn: 18 * 60 * 60 * 1000,
         ison: 'https://raw.githubusercontent.com/userXinos/HadesSpace/refs/heads/master/src/img/game/Ships/Transport_lv1.png',
         shorthand: 'TS',
         emoji: shipEmojiIds[1]
     },
     miner: {
-        respawn: 24 * 60 * 60 * 1000,
+        respawn: 18 * 60 * 60 * 1000,
         icon: 'https://cdn.discordapp.com/emojis/1466452412075086047.webp',
         shorthand: 'MS',
         emoji: shipEmojiIds[2]
@@ -78,22 +78,22 @@ client.getMessageInfo = async (channelId, messageId) => {
 
 client.updateScoreboard = async () => {
     const files = await generateReport(utils.getLastEventNumber(Date.now()), 0, true);
-    if(!files) return;
+    if (!files) return;
     await sendReport(files);
 }
 
 
-async function checkArtPoll () {
+async function checkArtPoll() {
     try {
         const [channelId, pollId] = await db.getArtPollData();
 
-        if(!channelId || !pollId) return;
-    
+        if (!channelId || !pollId) return;
+
         const guild = await client.guilds.fetch(GUILD_ID);
         const channel = await guild.channels.fetch(channelId);
         const poll = await channel.messages.fetch(pollId);
-    
-        if(poll.poll.resultsFinalized) {
+
+        if (poll.poll.resultsFinalized) {
             const sent = await channel.send(artPollMessage);
             await poll.delete();
             await db.setArtPollData(channelId, sent.id);
@@ -104,7 +104,7 @@ async function checkArtPoll () {
     } catch (e) {
         console.log(new Date().toLocaleString() + ' Error: (' + e + ')')
     }
-    
+
 }
 
 client.monitor = async () => {
@@ -115,21 +115,21 @@ client.monitor = async () => {
 }
 
 async function processWebhookMessage(message) {
-    if(message.author.id !== WEBHOOK_ID) return;
+    if (message.author.id !== WEBHOOK_ID) return;
     try {
-        for(let file of message.attachments.entries()) {
-            if(!client.log) throw new Error('The data logging function isn\'t set');
+        for (let file of message.attachments.entries()) {
+            if (!client.log) throw new Error('The data logging function isn\'t set');
             const data = await (await fetch(file[1].attachment)).json();
             await client.log(data, async res => {
-                if(res && !res.status) {
+                if (res && !res.status) {
                     message.react('❗');
                     console.log(res.error);
                     return;
                 }
                 message.react('✅');
-                if(utils.isRSEvent(Date.now()) && res.status === 2) {
+                if (utils.isRSEvent(Date.now()) && res.status === 2) {
                     const files = await generateReport(utils.getLastEventNumber(Date.now()), 0, true);
-                    if(!files) return;
+                    if (!files) return;
                     await sendReport(files);
                 }
             });
@@ -142,7 +142,7 @@ async function processWebhookMessage(message) {
 
 client.on('interactionCreate', async interaction => {
     try {
-        if(!interaction.channel.name.includes('bot')) {
+        if (!interaction.channel.name.includes('bot')) {
             return await interaction.reply({
                 content: 'Please use a bot channel to communicate with the bot.',
                 flags: [MessageFlags.Ephemeral]
@@ -156,32 +156,32 @@ client.on('interactionCreate', async interaction => {
                 const season = interaction.options.get('season') ? interaction.options.get('season').value : utils.getLastEventNumber(Date.now());
                 const stat = interaction.options.get('stat') ? interaction.options.get('stat').value : 0;
                 const files = await generateReport(season, stat, false);
-                if(!files) return await interaction.editReply({
+                if (!files) return await interaction.editReply({
                     content: 'The data for this season was not recorded',
                 });
-                
+
                 const attachments = files.map(file => {
                     return new AttachmentBuilder(file.attachment, {
-                      name: file.name
+                        name: file.name
                     });
-                  });
-                  
-                  const embeds = files.map(file => ({
+                });
+
+                const embeds = files.map(file => ({
                     color: 0x420000,
                     image: {
-                      url: 'attachment://' + file.name
+                        url: 'attachment://' + file.name
                     }
-                  }));
-                  
-                  await interaction.editReply({
+                }));
+
+                await interaction.editReply({
                     content: '',
                     embeds,
                     files: attachments
-                  });
+                });
                 break;
             case 'feed':
                 await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-                if(!validateUser(interaction.user)) {
+                if (!validateUser(interaction.user)) {
                     await interaction.editReply({
                         content: 'You do not have permission to use this command'
                     });
@@ -191,7 +191,7 @@ client.on('interactionCreate', async interaction => {
                     const data = interaction.options.get('data').value;
                     const json = JSON.parse(data);
                     await client.log(json, async res => {
-                        if(res && res.status === 0) {
+                        if (res && res.status === 0) {
                             await interaction.editReply('Error: ' + res.error);
                             return;
                         }
@@ -220,15 +220,15 @@ client.on('interactionCreate', async interaction => {
                 });
                 break;
             case 'artpoll':
-                switch(interaction.options.getSubcommand()) {
+                switch (interaction.options.getSubcommand()) {
                     case 'create':
                         await interaction.deferReply();
-                        if(!validateUser(interaction.user)) return await interaction.editReply('You do not have permissions to do this');
+                        if (!validateUser(interaction.user)) return await interaction.editReply('You do not have permissions to do this');
                         await interaction.editReply(artPollMessage);
                         break;
                     case 'monitor':
                         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-                        if(!validateUser(interaction.user)) {
+                        if (!validateUser(interaction.user)) {
                             await interaction.editReply({
                                 content: 'You do not have permission to use this command'
                             });
@@ -239,11 +239,11 @@ client.on('interactionCreate', async interaction => {
                             const pollId = interaction.options.get('poll_id').value;
                             const guild = await client.guilds.fetch(GUILD_ID);
                             const channel = await guild.channels.fetch(channelId);
-                            if(channel.isThread()) {
+                            if (channel.isThread()) {
                                 await channel.join();
                             }
                             const poll = await channel.messages.fetch(pollId);
-                            if(poll.poll && poll.author.id === BOT_ID) {
+                            if (poll.poll && poll.author.id === BOT_ID) {
                                 await db.setArtPollData(channel.id, poll.id);
                                 await interaction.editReply('Success! Now monitoring poll ' + pollId);
                             } else {
@@ -257,7 +257,7 @@ client.on('interactionCreate', async interaction => {
                     case 'status':
                         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
                         const [channelId, pollId] = await db.getArtPollData();
-                        if(channelId && pollId) {
+                        if (channelId && pollId) {
                             await interaction.editReply(`Monitoring https://discord.com/channels/${GUILD_ID}/${channelId}/${pollId}`);
                         } else {
                             await interaction.editReply(`No artifact poll is being monitored`);
@@ -265,7 +265,7 @@ client.on('interactionCreate', async interaction => {
                         break;
                     case 'forget':
                         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-                        if(!validateUser(interaction.user)) {
+                        if (!validateUser(interaction.user)) {
                             await interaction.editReply({
                                 content: 'You do not have permission to use this command'
                             });
@@ -286,17 +286,17 @@ client.on('interactionCreate', async interaction => {
                 let shipType;
                 const group = interaction.options.getSubcommandGroup();
                 const sub = interaction.options.getSubcommand();
-                if(group === 'elimination' &&  !validateRoles(userRoleIds, wsRoleIds) && !validateUser(interaction.user)) return await interaction.reply('You can\'t use this command unless you are a part of one of our WS teams');
+                if (group === 'elimination' && !validateRoles(userRoleIds, wsRoleIds) && !validateUser(interaction.user)) return await interaction.reply('You can\'t use this command unless you are a part of one of our WS teams');
                 switch ((group ? (group + ' ') : '') + sub) {
                     case 'info':
                         await interaction.deferReply();
                         const stars = await db.getWSInfo();
 
                         const embeds = [];
-                        if(stars[0]) embeds.push(generateWSInfoEmbed(stars[0], 0));
-                        if(stars[1]) embeds.push(generateWSInfoEmbed(stars[1], 1));
+                        if (stars[0]) embeds.push(generateWSInfoEmbed(stars[0], 0));
+                        if (stars[1]) embeds.push(generateWSInfoEmbed(stars[1], 1));
 
-                        if(embeds.length === 0) {
+                        if (embeds.length === 0) {
                             await interaction.editReply({
                                 content: 'There are no ongoing white stars at the moment...'
                             });
@@ -313,7 +313,7 @@ client.on('interactionCreate', async interaction => {
                         const timeStr = interaction.options.get('time').value;
                         const time = TIME_REGEX.exec(timeStr);
                         // console.log(time, timeStr);
-                        if(time == null) return await declareInvalidInputs(interaction, 'time');
+                        if (time == null) return await declareInvalidInputs(interaction, 'time');
 
                         const day = parseInt(time.groups.day);
                         const hour = parseInt(time.groups.hour);
@@ -322,10 +322,10 @@ client.on('interactionCreate', async interaction => {
 
                         const ms = 1000 * (60 * (minute + 60 * (hour + 24 * day)) + second);
                         // console.log(day, hour, minute, second, ms);
-                        if(ms > WS_DURATION_MS) return await declareInvalidInputs(interaction, 'time');
+                        if (ms > WS_DURATION_MS) return await declareInvalidInputs(interaction, 'time');
 
                         const ws = await db.getWSFromPlayerIndex(index);
-                        if(!ws) return await declareInvalidInputs(interaction, 'index');
+                        if (!ws) return await declareInvalidInputs(interaction, 'index');
 
                         // const diedAt = new Date(new Date(ws.ws_start).getTime() + WS_DURATION_MS - ms);
                         const respawnsAt = new Date(new Date(ws.ws_start).getTime() + WS_DURATION_MS - ms + SHIPS[shipType].respawn);
@@ -379,7 +379,7 @@ client.on('interactionCreate', async interaction => {
         }
     } catch (err) {
         console.error(err);
-        if(!interaction.deferred) interaction.deferReply();
+        if (!interaction.deferred) interaction.deferReply();
         interaction.editReply('Internal error');
     }
 });
@@ -388,15 +388,15 @@ async function generateReport(season, stat, header) {
     stat = stat || 0;
     const players = await db.report(season, stat);
     const corporationScore = await db.totalScore(season);
-    if(players.length === 0) return null;
+    if (players.length === 0) return null;
     const files = [];
-    if(header) {
+    if (header) {
         files.push({
             name: 'header.png',
-            attachment:  images.generateScoreHeaderImage(corporationScore, season)
+            attachment: images.generateScoreHeaderImage(corporationScore, season)
         });
     }
-    for(let i = 0; i < players.length; i+= 10) {
+    for (let i = 0; i < players.length; i += 10) {
         files.push({
             name: 'report' + i + '.png',
             attachment: images.generateScoreboardImage(players, season, i, 10, players[0][stats[stat].name], stat)
@@ -409,31 +409,31 @@ async function sendReport(files) {
     const guild = await client.guilds.fetch(GUILD_ID);
     const channel = await guild.channels.fetch(LB_CHANNEL_ID);
     const messages = await channel.messages.fetch({ limit: 20 });
-    for(let [id, m] of messages.entries()) {
+    for (let [id, m] of messages.entries()) {
         if (m.author.id === process.env.BOT_ID) {
             await m.delete();
         }
     }
     const attachments = files.map(file => {
         return new AttachmentBuilder(file.attachment, {
-        name: file.name,
+            name: file.name,
         });
     });
-    
+
     // const embeds = files.map(file => ({
     //     color: 0x420000,
     //     image: {
     //     url: 'attachment://' + file.name
     //     }
     // }));
-    
+
     // await channel.send({
     //     content: '',
     //     embeds,
     //     files: attachments
     // });
-    
-    for(let file of files) {
+
+    for (let file of files) {
         await channel.send({
             content: '',
             files: [file]
@@ -494,8 +494,8 @@ function validateUser(user) {
 }
 
 function validateRoles(userRoles, requiredRoles) {
-    for(let role of userRoles) {
-        if(requiredRoles.includes(role)) return true;
+    for (let role of userRoles) {
+        if (requiredRoles.includes(role)) return true;
     }
 
     return false;
